@@ -1,0 +1,16 @@
+[project]
+name = "networth-tracker"
+version = "0.1.0"
+description = "A Django REST API for tracking net worth across multiple asset types"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "django>=4.2,<5.0",
+    "djangorestframework>=3.14.0",
+    "django-cors-headers>=4.3.0",
+    "python-dotenv>=1.0.0",
+    "djangorestframework-simplejwt>=5.3.0",
+]
+
+[dependency-groups]
+dev = []
