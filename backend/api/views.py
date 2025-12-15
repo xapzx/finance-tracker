@@ -18,6 +18,7 @@ from .models import (
 from .serializers import (
     BankAccountSerializer,
     SuperannuationAccountSerializer,
+    SuperannuationSnapshotSerializer,
     ETFHoldingSerializer,
     ETFHoldingListSerializer,
     ETFTransactionSerializer,
@@ -33,7 +34,7 @@ from .serializers import (
     UserPreferencesSerializer,
     RegisterSerializer,
 )
-from .models import UserPreferences
+from .models import UserPreferences, SuperannuationSnapshot
 
 
 class RegisterView(generics.CreateAPIView):
@@ -126,6 +127,21 @@ class SuperannuationAccountViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class SuperannuationSnapshotViewSet(viewsets.ModelViewSet):
+    """ViewSet for SuperannuationSnapshot CRUD operations."""
+
+    serializer_class = SuperannuationSnapshotSerializer
+
+    def get_queryset(self):
+        queryset = SuperannuationSnapshot.objects.filter(
+            account__user=self.request.user
+        )
+        account_id = self.request.query_params.get('account', None)
+        if account_id:
+            queryset = queryset.filter(account_id=account_id)
+        return queryset
 
 
 class ETFHoldingViewSet(viewsets.ModelViewSet):

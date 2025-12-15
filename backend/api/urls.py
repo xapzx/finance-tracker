@@ -11,6 +11,7 @@ from . import views
 router = DefaultRouter()
 router.register(r'bank-accounts', views.BankAccountViewSet, basename='bank-account')
 router.register(r'superannuation', views.SuperannuationAccountViewSet, basename='superannuation')
+router.register(r'super-snapshots', views.SuperannuationSnapshotViewSet, basename='super-snapshot')
 router.register(r'etf-holdings', views.ETFHoldingViewSet, basename='etf-holding')
 router.register(r'etf-transactions', views.ETFTransactionViewSet, basename='etf-transaction')
 router.register(r'crypto-holdings', views.CryptoHoldingViewSet, basename='crypto-holding')

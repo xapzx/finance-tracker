@@ -7,6 +7,7 @@ from .models import (
     UserPreferences,
     BankAccount,
     SuperannuationAccount,
+    SuperannuationSnapshot,
     ETFHolding,
     ETFTransaction,
     CryptoHolding,
@@ -123,8 +124,45 @@ class BankAccountSerializer(serializers.ModelSerializer):
         exclude = ['user']
 
 
+class SuperannuationSnapshotSerializer(serializers.ModelSerializer):
+    """Serializer for SuperannuationSnapshot model."""
+
+    investment_gain = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
+    total_contributions = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
+
+    class Meta:
+        model = SuperannuationSnapshot
+        fields = [
+            'id', 'account', 'date', 'balance',
+            'employer_contribution', 'personal_contribution',
+            'total_contributions', 'investment_gain', 'notes', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+
+
 class SuperannuationAccountSerializer(serializers.ModelSerializer):
     """Serializer for SuperannuationAccount model."""
+
+    snapshots = SuperannuationSnapshotSerializer(many=True, read_only=True)
+    latest_snapshot = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SuperannuationAccount
+        exclude = ['user']
+
+    def get_latest_snapshot(self, obj):
+        snapshot = obj.snapshots.first()
+        if snapshot:
+            return SuperannuationSnapshotSerializer(snapshot).data
+        return None
+
+
+class SuperannuationAccountListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for SuperannuationAccount list view."""
 
     class Meta:
         model = SuperannuationAccount

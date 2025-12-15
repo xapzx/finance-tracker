@@ -27,7 +27,6 @@ const navItems = [
   { path: '/etf', icon: TrendingUp, label: 'ETFs' },
   { path: '/crypto', icon: Bitcoin, label: 'Crypto' },
   { path: '/stocks', icon: BarChart3, label: 'Stocks' },
-  { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 function ProtectedRoute({ children }) {
@@ -85,9 +84,22 @@ function AppLayout() {
             <p className="text-sm font-medium truncate">{user?.first_name || user?.username}</p>
             <p className="text-xs text-slate-500 truncate">{user?.email}</p>
           </div>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2 w-full rounded-lg transition-colors ${
+                isActive
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-300 hover:bg-slate-800'
+              }`
+            }
+          >
+            <Settings size={18} />
+            <span className="text-sm">Settings</span>
+          </NavLink>
           <button
             onClick={logoutUser}
-            className="flex items-center gap-3 px-4 py-2 w-full text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
+            className="flex items-center gap-3 px-4 py-2 w-full text-slate-300 hover:bg-slate-800 rounded-lg transition-colors mt-1"
           >
             <LogOut size={18} />
             <span className="text-sm">Sign Out</span>

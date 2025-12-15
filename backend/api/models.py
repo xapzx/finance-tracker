@@ -144,6 +144,56 @@ class SuperannuationAccount(models.Model):
         return f"{self.fund_name} - {self.account_name or self.member_number}"
 
 
+class SuperannuationSnapshot(models.Model):
+    """Monthly snapshot of superannuation balance for tracking gain/loss."""
+
+    account = models.ForeignKey(
+        SuperannuationAccount, on_delete=models.CASCADE,
+        related_name='snapshots'
+    )
+    date = models.DateField()
+    balance = models.DecimalField(max_digits=15, decimal_places=2)
+    employer_contribution = models.DecimalField(
+        max_digits=15, decimal_places=2, default=Decimal('0.00'),
+        help_text="Employer contributions this month"
+    )
+    personal_contribution = models.DecimalField(
+        max_digits=15, decimal_places=2, default=Decimal('0.00'),
+        help_text="Personal contributions this month"
+    )
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+        unique_together = ['account', 'date']
+
+    def __str__(self):
+        return f"{self.account} - {self.date}"
+
+    @property
+    def total_contributions(self):
+        """Total contributions for this period."""
+        return self.employer_contribution + self.personal_contribution
+
+    @property
+    def investment_gain(self):
+        """
+        Calculate investment gain/loss.
+        This is the change in balance minus contributions.
+        Requires comparing to previous snapshot.
+        """
+        previous = SuperannuationSnapshot.objects.filter(
+            account=self.account,
+            date__lt=self.date
+        ).first()
+
+        if previous:
+            balance_change = self.balance - previous.balance
+            return balance_change - self.total_contributions
+        return Decimal('0.00')
+
+
 class ETFHolding(models.Model):
     """Model for tracking ETF holdings."""
 

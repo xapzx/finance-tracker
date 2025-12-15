@@ -76,6 +76,14 @@ export const createSuperannuationAccount = (data) => api.post('/superannuation/'
 export const updateSuperannuationAccount = (id, data) => api.put(`/superannuation/${id}/`, data);
 export const deleteSuperannuationAccount = (id) => api.delete(`/superannuation/${id}/`);
 
+// Superannuation Snapshots
+export const getSuperSnapshots = (accountId) => 
+  api.get('/super-snapshots/', { params: accountId ? { account: accountId } : {} });
+export const getSuperSnapshot = (id) => api.get(`/super-snapshots/${id}/`);
+export const createSuperSnapshot = (data) => api.post('/super-snapshots/', data);
+export const updateSuperSnapshot = (id, data) => api.put(`/super-snapshots/${id}/`, data);
+export const deleteSuperSnapshot = (id) => api.delete(`/super-snapshots/${id}/`);
+
 // ETF Holdings
 export const getETFHoldings = () => api.get('/etf-holdings/');
 export const getETFHolding = (id) => api.get(`/etf-holdings/${id}/`);

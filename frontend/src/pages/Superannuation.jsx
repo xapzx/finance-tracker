@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Umbrella } from 'lucide-react';
+import { Plus, Pencil, Trash2, Umbrella, ChevronDown, ChevronUp, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
 import Card, { CardBody } from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -8,9 +8,12 @@ import {
   getSuperannuationAccounts, 
   createSuperannuationAccount, 
   updateSuperannuationAccount, 
-  deleteSuperannuationAccount 
+  deleteSuperannuationAccount,
+  getSuperSnapshots,
+  createSuperSnapshot,
+  deleteSuperSnapshot,
 } from '../api';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatDate } from '../utils/format';
 
 const initialFormData = {
   fund_name: '',
@@ -23,6 +26,14 @@ const initialFormData = {
   notes: '',
 };
 
+const initialSnapshotForm = {
+  date: new Date().toISOString().split('T')[0],
+  balance: '',
+  employer_contribution: '',
+  personal_contribution: '',
+  notes: '',
+};
+
 export default function Superannuation() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +41,13 @@ export default function Superannuation() {
   const [editingAccount, setEditingAccount] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
   const [saving, setSaving] = useState(false);
+  
+  // Snapshot state
+  const [expandedAccount, setExpandedAccount] = useState(null);
+  const [snapshots, setSnapshots] = useState({});
+  const [snapshotModalOpen, setSnapshotModalOpen] = useState(false);
+  const [snapshotAccount, setSnapshotAccount] = useState(null);
+  const [snapshotForm, setSnapshotForm] = useState(initialSnapshotForm);
 
   useEffect(() => {
     fetchAccounts();
@@ -110,6 +128,73 @@ export default function Superannuation() {
       fetchAccounts();
     } catch (err) {
       console.error('Failed to delete superannuation account:', err);
+    }
+  };
+
+  // Snapshot functions
+  const toggleExpanded = async (accountId) => {
+    if (expandedAccount === accountId) {
+      setExpandedAccount(null);
+    } else {
+      setExpandedAccount(accountId);
+      if (!snapshots[accountId]) {
+        await fetchSnapshots(accountId);
+      }
+    }
+  };
+
+  const fetchSnapshots = async (accountId) => {
+    try {
+      const response = await getSuperSnapshots(accountId);
+      setSnapshots(prev => ({ ...prev, [accountId]: response.data }));
+    } catch (err) {
+      console.error('Failed to fetch snapshots:', err);
+    }
+  };
+
+  const handleOpenSnapshotModal = (account) => {
+    setSnapshotAccount(account);
+    setSnapshotForm({
+      ...initialSnapshotForm,
+      balance: account.balance,
+    });
+    setSnapshotModalOpen(true);
+  };
+
+  const handleSnapshotChange = (e) => {
+    const { name, value } = e.target;
+    setSnapshotForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSnapshotSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await createSuperSnapshot({
+        account: snapshotAccount.id,
+        date: snapshotForm.date,
+        balance: parseFloat(snapshotForm.balance) || 0,
+        employer_contribution: parseFloat(snapshotForm.employer_contribution) || 0,
+        personal_contribution: parseFloat(snapshotForm.personal_contribution) || 0,
+        notes: snapshotForm.notes,
+      });
+      setSnapshotModalOpen(false);
+      setSnapshotAccount(null);
+      await fetchSnapshots(snapshotAccount.id);
+    } catch (err) {
+      console.error('Failed to save snapshot:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteSnapshot = async (snapshotId, accountId) => {
+    if (!confirm('Delete this monthly record?')) return;
+    try {
+      await deleteSuperSnapshot(snapshotId);
+      await fetchSnapshots(accountId);
+    } catch (err) {
+      console.error('Failed to delete snapshot:', err);
     }
   };
 
@@ -213,6 +298,13 @@ export default function Superannuation() {
                     </div>
                     <div className="flex gap-2">
                       <button
+                        onClick={() => handleOpenSnapshotModal(account)}
+                        className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                        title="Record monthly balance"
+                      >
+                        <Calendar size={18} />
+                      </button>
+                      <button
                         onClick={() => handleOpenModal(account)}
                         className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                       >
@@ -231,6 +323,78 @@ export default function Superannuation() {
                   <p className="text-sm text-gray-500 mt-3 pt-3 border-t">
                     {account.notes}
                   </p>
+                )}
+                
+                {/* Monthly History Toggle */}
+                <button
+                  onClick={() => toggleExpanded(account.id)}
+                  className="flex items-center gap-2 mt-4 pt-3 border-t w-full text-sm text-gray-600 hover:text-gray-900"
+                >
+                  {expandedAccount === account.id ? (
+                    <ChevronUp size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
+                  Monthly History
+                </button>
+                
+                {/* Snapshots List */}
+                {expandedAccount === account.id && (
+                  <div className="mt-4 space-y-2">
+                    {!snapshots[account.id] || snapshots[account.id].length === 0 ? (
+                      <p className="text-sm text-gray-400 text-center py-4">
+                        No monthly records yet. Click the calendar icon to add one.
+                      </p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-left text-gray-500 border-b">
+                              <th className="pb-2 font-medium">Date</th>
+                              <th className="pb-2 font-medium text-right">Balance</th>
+                              <th className="pb-2 font-medium text-right">Contributions</th>
+                              <th className="pb-2 font-medium text-right">Gain/Loss</th>
+                              <th className="pb-2 w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {snapshots[account.id].map((snapshot) => {
+                              const gain = parseFloat(snapshot.investment_gain || 0);
+                              return (
+                                <tr key={snapshot.id} className="border-b border-gray-50">
+                                  <td className="py-2">{formatDate(snapshot.date)}</td>
+                                  <td className="py-2 text-right font-medium">
+                                    {formatCurrency(snapshot.balance)}
+                                  </td>
+                                  <td className="py-2 text-right text-gray-500">
+                                    {formatCurrency(snapshot.total_contributions)}
+                                  </td>
+                                  <td className={`py-2 text-right font-medium flex items-center justify-end gap-1 ${
+                                    gain >= 0 ? 'text-green-600' : 'text-red-600'
+                                  }`}>
+                                    {gain >= 0 ? (
+                                      <TrendingUp size={14} />
+                                    ) : (
+                                      <TrendingDown size={14} />
+                                    )}
+                                    {formatCurrency(Math.abs(gain))}
+                                  </td>
+                                  <td className="py-2">
+                                    <button
+                                      onClick={() => handleDeleteSnapshot(snapshot.id, account.id)}
+                                      className="p-1 text-gray-400 hover:text-red-600"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
                 )}
               </CardBody>
             </Card>
@@ -317,6 +481,72 @@ export default function Superannuation() {
             </Button>
             <Button type="submit" disabled={saving}>
               {saving ? 'Saving...' : editingAccount ? 'Update' : 'Add Account'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Add Snapshot Modal */}
+      <Modal
+        isOpen={snapshotModalOpen}
+        onClose={() => setSnapshotModalOpen(false)}
+        title="Record Monthly Balance"
+      >
+        <form onSubmit={handleSnapshotSubmit} className="space-y-4">
+          <p className="text-sm text-gray-500 mb-4">
+            Record your super balance for {snapshotAccount?.fund_name} to track monthly gain/loss.
+          </p>
+          <Input
+            label="Date"
+            name="date"
+            type="date"
+            value={snapshotForm.date}
+            onChange={handleSnapshotChange}
+            required
+          />
+          <Input
+            label="Balance (AUD)"
+            name="balance"
+            type="number"
+            step="0.01"
+            value={snapshotForm.balance}
+            onChange={handleSnapshotChange}
+            placeholder="0.00"
+            required
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Employer Contribution"
+              name="employer_contribution"
+              type="number"
+              step="0.01"
+              value={snapshotForm.employer_contribution}
+              onChange={handleSnapshotChange}
+              placeholder="This month"
+            />
+            <Input
+              label="Personal Contribution"
+              name="personal_contribution"
+              type="number"
+              step="0.01"
+              value={snapshotForm.personal_contribution}
+              onChange={handleSnapshotChange}
+              placeholder="This month"
+            />
+          </div>
+          <Textarea
+            label="Notes"
+            name="notes"
+            value={snapshotForm.notes}
+            onChange={handleSnapshotChange}
+            placeholder="Optional notes..."
+          />
+          <div className="flex gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={() => setSnapshotModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? 'Saving...' : 'Save Record'}
             </Button>
           </div>
         </form>
