@@ -22,6 +22,7 @@ router.register(r'stock-transactions', views.StockTransactionViewSet, basename='
 urlpatterns = [
     path('', include(router.urls)),
     path('summary/', views.networth_summary, name='networth-summary'),
+    path('crypto/refresh-prices/', views.refresh_crypto_prices, name='refresh-crypto-prices'),
     # Auth endpoints
     path('auth/register/', views.RegisterView.as_view(), name='register'),
     path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

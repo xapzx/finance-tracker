@@ -261,7 +261,7 @@ class CryptoHoldingListSerializer(serializers.ModelSerializer):
     class Meta:
         model = CryptoHolding
         fields = [
-            'id', 'symbol', 'name', 'quantity', 'average_price',
+            'id', 'symbol', 'name', 'coingecko_id', 'quantity', 'average_price',
             'current_price', 'market_value', 'cost_basis',
             'unrealised_gain', 'wallet_address', 'exchange',
             'notes', 'created_at', 'updated_at'

@@ -10,7 +10,16 @@ from .models import (
     CryptoTransaction,
     StockHolding,
     StockTransaction,
+    SuperannuationSnapshot,
+    UserPreferences,
 )
+
+
+@admin.register(UserPreferences)
+class UserPreferencesAdmin(admin.ModelAdmin):
+    list_display = ['user', 'currency', 'timezone', 'created_at', 'updated_at']
+    list_filter = ['currency', 'timezone']
+    search_fields = ['user__username']
 
 
 @admin.register(BankAccount)
@@ -25,6 +34,13 @@ class SuperannuationAccountAdmin(admin.ModelAdmin):
     list_display = ['fund_name', 'account_name', 'balance', 'updated_at']
     list_filter = ['fund_name']
     search_fields = ['fund_name', 'account_name', 'member_number']
+
+
+@admin.register(SuperannuationSnapshot)
+class SuperannuationSnapshotAdmin(admin.ModelAdmin):
+    list_display = ['account', 'date', 'balance', 'employer_contribution', 'personal_contribution', 'notes']
+    list_filter = ['account']
+    search_fields = ['account__fund_name', 'account__account_name']
 
 
 @admin.register(ETFHolding)

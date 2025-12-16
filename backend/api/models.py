@@ -276,6 +276,10 @@ class CryptoHolding(models.Model):
     )
     symbol = models.CharField(max_length=20)
     name = models.CharField(max_length=100)
+    coingecko_id = models.CharField(
+        max_length=100, blank=True,
+        help_text="CoinGecko ID for price fetching (e.g., 'bitcoin', 'ethereum')"
+    )
     quantity = models.DecimalField(max_digits=20, decimal_places=10)
     average_price = models.DecimalField(max_digits=15, decimal_places=4)
     current_price = models.DecimalField(

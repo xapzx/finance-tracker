@@ -1,5 +1,7 @@
 """Views for the Networth Tracker API."""
 
+import requests
+from decimal import Decimal
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -326,4 +328,61 @@ def networth_summary(request):
             'total_dividends': str(etf_dividends + stock_dividends),
         },
         'currency': 'AUD',
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def refresh_crypto_prices(request):
+    """Fetch current crypto prices from CoinGecko and update holdings."""
+    user = request.user
+    holdings = CryptoHolding.objects.filter(user=user)
+
+    if not holdings.exists():
+        return Response({'message': 'No crypto holdings to update'})
+
+    # Get unique coingecko_ids
+    coingecko_ids = [
+        h.coingecko_id for h in holdings
+        if h.coingecko_id
+    ]
+
+    if not coingecko_ids:
+        return Response({
+            'error': 'No CoinGecko IDs configured for your holdings. '
+                     'Edit each holding and add its CoinGecko ID.'
+        }, status=400)
+
+    # Fetch prices from CoinGecko
+    try:
+        ids_param = ','.join(set(coingecko_ids))
+        url = 'https://api.coingecko.com/api/v3/simple/price'
+        response = requests.get(url, params={
+            'ids': ids_param,
+            'vs_currencies': 'aud'
+        }, timeout=10)
+        response.raise_for_status()
+        prices = response.json()
+    except requests.RequestException as e:
+        return Response({
+            'error': f'Failed to fetch prices from CoinGecko: {str(e)}'
+        }, status=503)
+
+    # Update holdings with new prices
+    updated = []
+    for holding in holdings:
+        if holding.coingecko_id and holding.coingecko_id in prices:
+            price_data = prices[holding.coingecko_id]
+            if 'aud' in price_data:
+                holding.current_price = Decimal(str(price_data['aud']))
+                holding.save()
+                updated.append({
+                    'symbol': holding.symbol,
+                    'price': str(holding.current_price)
+                })
+
+    return Response({
+        'message': f'Updated {len(updated)} holdings',
+        'updated': updated,
+        'prices': prices
     })
