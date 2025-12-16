@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Bitcoin, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Pencil, Trash2, Bitcoin, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import Card, { CardBody } from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -11,7 +11,8 @@ import {
   deleteCryptoHolding,
   getCryptoTransactions,
   createCryptoTransaction,
-  deleteCryptoTransaction
+  deleteCryptoTransaction,
+  refreshCryptoPrices,
 } from '../api';
 import { formatCurrency, formatNumber, formatDate, getGainLossColor } from '../utils/format';
 
@@ -27,6 +28,7 @@ const TRANSACTION_TYPES = [
 const initialHoldingForm = {
   symbol: '',
   name: '',
+  coingecko_id: '',
   quantity: '',
   average_price: '',
   current_price: '',
@@ -58,6 +60,7 @@ export default function CryptoHoldings() {
   const [saving, setSaving] = useState(false);
   const [expandedHolding, setExpandedHolding] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchHoldings();
@@ -100,6 +103,7 @@ export default function CryptoHoldings() {
       setHoldingForm({
         symbol: holding.symbol,
         name: holding.name,
+        coingecko_id: holding.coingecko_id || '',
         quantity: holding.quantity,
         average_price: holding.average_price,
         current_price: holding.current_price,
@@ -221,6 +225,20 @@ export default function CryptoHoldings() {
     }
   };
 
+  const handleRefreshPrices = async () => {
+    setRefreshing(true);
+    try {
+      const response = await refreshCryptoPrices();
+      console.log('Prices refreshed:', response.data);
+      await fetchHoldings();
+    } catch (err) {
+      console.error('Failed to refresh prices:', err);
+      alert(err.response?.data?.error || 'Failed to refresh prices');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const totalMarketValue = holdings.reduce(
     (sum, h) => sum + parseFloat(h.market_value || 0), 
     0
@@ -246,10 +264,20 @@ export default function CryptoHoldings() {
           <h1 className="text-3xl font-bold text-gray-900">Crypto Holdings</h1>
           <p className="text-gray-500 mt-1">Track your cryptocurrency investments</p>
         </div>
-        <Button onClick={() => handleOpenHoldingModal()}>
-          <Plus size={20} />
-          Add Crypto
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            variant="secondary" 
+            onClick={handleRefreshPrices}
+            disabled={refreshing}
+          >
+            <RefreshCw size={20} className={refreshing ? 'animate-spin' : ''} />
+            {refreshing ? 'Refreshing...' : 'Refresh Prices'}
+          </Button>
+          <Button onClick={() => handleOpenHoldingModal()}>
+            <Plus size={20} />
+            Add Crypto
+          </Button>
+        </div>
       </div>
 
       {/* Summary Card */}
@@ -444,6 +472,16 @@ export default function CryptoHoldings() {
             placeholder="e.g., Bitcoin"
             required
           />
+          <Input
+            label="CoinGecko ID (for auto price updates)"
+            name="coingecko_id"
+            value={holdingForm.coingecko_id}
+            onChange={handleHoldingChange}
+            placeholder="e.g., bitcoin, ethereum, solana"
+          />
+          <p className="text-xs text-gray-500 -mt-2">
+            Find IDs at <a href="https://www.coingecko.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">coingecko.com</a> - use the API ID from the coin's page URL
+          </p>
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Quantity"
