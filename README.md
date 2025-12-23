@@ -14,7 +14,7 @@ A full-stack web application to track your net worth across multiple asset types
 ## Tech Stack
 
 ### Backend
-- Django 4.2
+- Django 5.2
 - Django REST Framework
 - SQLite (default, easily switchable to PostgreSQL)
 
@@ -29,7 +29,7 @@ A full-stack web application to track your net worth across multiple asset types
 ## Setup Instructions
 
 ### Prerequisites
-- Python 3.10+
+- Python 3.14.2+
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 - Node.js 18+
 - npm or yarn
