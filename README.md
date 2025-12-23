@@ -138,6 +138,41 @@ The app will be available at `http://localhost:5173`
 - `POST /api/stock-transactions/` - Create a stock transaction
 - `DELETE /api/stock-transactions/{id}/` - Delete a stock transaction
 
+## Testing
+
+The backend uses pytest with pytest-django for testing.
+
+### Running Tests
+
+```bash
+cd backend
+
+# Run all tests
+uv run pytest
+
+# Run with verbose output
+uv run pytest -v
+
+# Run with coverage report
+uv run pytest --cov=api
+
+# Run specific test file
+uv run pytest api/tests/test_models.py
+
+# Run specific test class
+uv run pytest api/tests/test_views.py::TestBankAccountViews
+```
+
+### Test Structure
+
+```
+backend/api/tests/
+├── __init__.py
+├── conftest.py      # Shared fixtures (users, auth clients, sample data)
+├── test_models.py   # Model unit tests
+└── test_views.py    # API endpoint tests
+```
+
 ## Currency
 
 All values are in Australian Dollars (AUD). The application is configured for Australian locale formatting.
