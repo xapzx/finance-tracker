@@ -14,17 +14,18 @@ A full-stack web application to track your net worth across multiple asset types
 ## Tech Stack
 
 ### Backend
-- Django 5.2
-- Django REST Framework
+- Django 5.2.9
+- Django REST Framework 3.15.0
 - SQLite (default, easily switchable to PostgreSQL)
 
 ### Frontend
-- React 18
-- React Router
-- TailwindCSS
-- Recharts (for charts)
-- Lucide React (icons)
-- Axios
+- React 19.2.3
+- React Router 6.28.0
+- TailwindCSS 3.4.17
+- Recharts 2.14.1 (for charts)
+- Lucide React 0.462.0 (icons)
+- Axios 1.7.9
+- Vite 6.0.7
 
 ## Setup Instructions
 
@@ -125,6 +126,7 @@ The app will be available at `http://localhost:5173`
 - `GET /api/crypto-transactions/` - List all crypto transactions
 - `POST /api/crypto-transactions/` - Create a crypto transaction
 - `DELETE /api/crypto-transactions/{id}/` - Delete a crypto transaction
+- `POST /api/crypto/refresh-prices/` - Refresh crypto prices from CoinGecko API
 
 ### Stock Holdings & Transactions
 - `GET /api/stock-holdings/` - List all stock holdings
