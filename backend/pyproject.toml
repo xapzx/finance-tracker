@@ -3,7 +3,7 @@ name = "networth-tracker"
 version = "0.1.0"
 description = "A Django REST API for tracking net worth across multiple asset types"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 dependencies = [
     "django>=4.2,<5.0",
     "djangorestframework>=3.14.0",
