@@ -30,6 +30,55 @@ A full-stack web application to track your net worth across multiple asset types
 ## Setup Instructions
 
 ### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose
+- OR Python 3.14.2+, [uv](https://docs.astral.sh/uv/), Node.js 18+, npm/yarn
+
+---
+
+### Docker Setup (Recommended)
+
+1. Clone the repository and navigate to the project:
+```bash
+git clone <repository-url>
+cd networth-tracker
+```
+
+2. Copy environment file:
+```bash
+cp .env.example .env
+```
+
+3. Start all services:
+```bash
+docker-compose up --build
+```
+
+The application will be available at:
+- Frontend: http://localhost:3002
+- Backend API: http://localhost:8001
+- Database: localhost:5433
+
+4. Create a superuser (optional):
+```bash
+# In another terminal, create a superuser for admin access
+docker-compose exec backend uv run python manage.py createsuperuser
+```
+
+6. Stop services:
+```bash
+docker-compose down
+```
+
+7. View logs:
+```bash
+docker-compose logs -f
+```
+
+---
+
+### Manual Setup (Without Docker)
+
+### Prerequisites
 - Python 3.14.2+
 - [uv](https://docs.astral.sh/uv/) (Python package manager)
 - Node.js 18+
