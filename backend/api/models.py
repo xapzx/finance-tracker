@@ -197,12 +197,23 @@ class SuperannuationSnapshot(models.Model):
 class ETFHolding(models.Model):
     """Model for tracking ETF holdings."""
 
+    EXCHANGE_CHOICES = [
+        ('ASX', 'ASX (Australian)'),
+        ('NYSE', 'NYSE (US)'),
+        ('NASDAQ', 'NASDAQ (US)'),
+        ('LSE', 'LSE (UK)'),
+        ('OTHER', 'Other'),
+    ]
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='etf_holdings'
     )
     symbol = models.CharField(max_length=20)
     name = models.CharField(max_length=200)
+    exchange = models.CharField(
+        max_length=10, choices=EXCHANGE_CHOICES, default='ASX'
+    )
     units = models.DecimalField(max_digits=15, decimal_places=6)
     average_price = models.DecimalField(max_digits=15, decimal_places=4)
     current_price = models.DecimalField(

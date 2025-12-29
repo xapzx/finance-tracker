@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Pencil, Trash2, BarChart3, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import Card, { CardBody } from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -12,7 +12,8 @@ import {
   getStockTransactions,
   createStockTransaction,
   deleteStockTransaction,
-  getStockPrice
+  getStockPrice,
+  refreshStockPrices
 } from '../api';
 import { formatCurrency, formatNumber, formatDate, getGainLossColor } from '../utils/format';
 
@@ -64,6 +65,7 @@ export default function StockHoldings() {
   const [expandedHolding, setExpandedHolding] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [fetchingPrice, setFetchingPrice] = useState(false);
+  const [refreshingPrices, setRefreshingPrices] = useState(false);
 
   useEffect(() => {
     fetchHoldings();
@@ -74,7 +76,7 @@ export default function StockHoldings() {
       if (holdingForm.symbol && holdingForm.symbol.trim()) {
         setFetchingPrice(true);
         try {
-          const response = await getStockPrice(holdingForm.symbol.trim());
+          const response = await getStockPrice(holdingForm.symbol.trim(), holdingForm.exchange);
           if (response.data.price) {
             setHoldingForm(prev => ({ ...prev, current_price: response.data.price.toString() }));
           }
@@ -88,7 +90,7 @@ export default function StockHoldings() {
 
     const timeoutId = setTimeout(fetchCurrentPrice, 500);
     return () => clearTimeout(timeoutId);
-  }, [holdingForm.symbol]);
+  }, [holdingForm.symbol, holdingForm.exchange]);
 
   const fetchHoldings = async () => {
     try {
@@ -118,6 +120,18 @@ export default function StockHoldings() {
     } else {
       setExpandedHolding(holdingId);
       await fetchTransactions(holdingId);
+    }
+  };
+
+  const handleRefreshPrices = async () => {
+    setRefreshingPrices(true);
+    try {
+      await refreshStockPrices();
+      await fetchHoldings(); // Refresh the list to show updated prices
+    } catch (err) {
+      console.error('Failed to refresh stock prices:', err);
+    } finally {
+      setRefreshingPrices(false);
     }
   };
 
@@ -269,10 +283,20 @@ export default function StockHoldings() {
           <h1 className="text-3xl font-bold text-gray-900">Stock Holdings</h1>
           <p className="text-gray-500 mt-1">Track your stock investments and dividends</p>
         </div>
-        <Button onClick={() => handleOpenHoldingModal()}>
-          <Plus size={20} />
-          Add Stock
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            variant="secondary" 
+            onClick={handleRefreshPrices}
+            disabled={refreshingPrices}
+          >
+            <RefreshCw size={20} className={refreshingPrices ? 'animate-spin' : ''} />
+            {refreshingPrices ? 'Refreshing...' : 'Refresh Prices'}
+          </Button>
+          <Button onClick={() => handleOpenHoldingModal()}>
+            <Plus size={20} />
+            Add Stock
+          </Button>
+        </div>
       </div>
 
       {/* Summary Card */}

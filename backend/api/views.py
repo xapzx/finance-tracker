@@ -430,6 +430,7 @@ def get_crypto_price(request):
 def get_etf_price(request):
     """Fetch current price for an ETF using yfinance."""
     ticker = request.query_params.get('ticker')
+    exchange = request.query_params.get('exchange', 'ASX')
 
     if not ticker:
         return Response({
@@ -437,10 +438,12 @@ def get_etf_price(request):
         }, status=400)
 
     try:
-        # Add .AX suffix for Australian ETFs if not present
+        # Format ticker based on exchange
         ticker_symbol = ticker.upper()
-        if not ticker_symbol.endswith('.AX'):
+        if exchange.upper() == 'ASX' and not ticker_symbol.endswith('.AX'):
             ticker_symbol = f"{ticker_symbol}.AX"
+        # US ETFs (NYSE, NASDAQ) don't need suffix
+        # Other exchanges use ticker as-is
 
         # Fetch data from yfinance
         etf = yf.Ticker(ticker_symbol)
@@ -472,6 +475,7 @@ def get_etf_price(request):
 def get_stock_price(request):
     """Fetch current price for a stock using yfinance."""
     ticker = request.query_params.get('ticker')
+    exchange = request.query_params.get('exchange', 'ASX')
 
     if not ticker:
         return Response({
@@ -479,10 +483,12 @@ def get_stock_price(request):
         }, status=400)
 
     try:
-        # Add .AX suffix for Australian stocks if not present
+        # Format ticker based on exchange
         ticker_symbol = ticker.upper()
-        if not ticker_symbol.endswith('.AX'):
+        if exchange.upper() == 'ASX' and not ticker_symbol.endswith('.AX'):
             ticker_symbol = f"{ticker_symbol}.AX"
+        # US stocks (NYSE, NASDAQ) don't need suffix
+        # Other exchanges use ticker as-is
 
         # Fetch data from yfinance
         stock = yf.Ticker(ticker_symbol)
@@ -506,4 +512,151 @@ def get_stock_price(request):
     except Exception as e:
         return Response({
             'error': f'Failed to fetch price from yfinance: {str(e)}'
+        }, status=503)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def refresh_etf_prices(request):
+    """Fetch current ETF prices from yfinance and update holdings."""
+    user = request.user
+    holdings = ETFHolding.objects.filter(user=user)
+
+    if not holdings.exists():
+        return Response({'message': 'No ETF holdings to update'})
+
+    # Get unique symbols with their exchanges
+    symbol_data = {}
+    for h in holdings:
+        if h.symbol:
+            key = f"{h.symbol}:{h.exchange}"
+            symbol_data[key] = {
+                'symbol': h.symbol,
+                'exchange': h.exchange
+            }
+
+    if not symbol_data:
+        return Response({
+            'error': 'No symbols configured for your ETF holdings.'
+        }, status=400)
+
+    # Format tickers based on exchange
+    ticker_symbols = []
+    for data in symbol_data.values():
+        ticker_symbol = data['symbol'].upper()
+        if data['exchange'].upper() == 'ASX' and not ticker_symbol.endswith('.AX'):
+            ticker_symbol = f"{ticker_symbol}.AX"
+        # US ETFs (NYSE, NASDAQ) don't need suffix
+        # Other exchanges use ticker as-is
+        ticker_symbols.append(ticker_symbol)
+
+    # Fetch prices from yfinance
+    try:
+        tickers_str = ' '.join(ticker_symbols)
+        data = yf.download(tickers_str, period='1d', interval='1d')
+
+        updated = []
+        for holding in holdings:
+            # Format ticker symbol based on exchange for matching
+            ticker_symbol = holding.symbol.upper()
+            if (holding.exchange.upper() == 'ASX' and
+                    not ticker_symbol.endswith('.AX')):
+                ticker_symbol = f"{ticker_symbol}.AX"
+            # US ETFs (NYSE, NASDAQ) don't need suffix
+            # Other exchanges use ticker as-is
+
+            if ticker_symbol in data.columns:
+                # Get the most recent price (last row)
+                price_series = data[ticker_symbol]['Close'].dropna()
+                if not price_series.empty:
+                    current_price = price_series.iloc[-1]
+                    holding.current_price = Decimal(str(current_price))
+                    holding.save()
+                    updated.append({
+                        'symbol': holding.symbol,
+                        'exchange': holding.exchange,
+                        'price': str(holding.current_price)
+                    })
+
+        return Response({
+            'message': f'Updated {len(updated)} ETF holdings',
+            'updated': updated
+        })
+    except Exception as e:
+        return Response({
+            'error': f'Failed to fetch prices from yfinance: {str(e)}'
+        }, status=503)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def refresh_stock_prices(request):
+    """Fetch current stock prices from yfinance and update holdings."""
+    user = request.user
+    holdings = StockHolding.objects.filter(user=user)
+
+    if not holdings.exists():
+        return Response({'message': 'No stock holdings to update'})
+
+    # Get unique symbols with their exchanges
+    symbol_data = {}
+    for h in holdings:
+        if h.symbol:
+            key = f"{h.symbol}:{h.exchange}"
+            symbol_data[key] = {
+                'symbol': h.symbol,
+                'exchange': h.exchange
+            }
+
+    if not symbol_data:
+        return Response({
+            'error': 'No symbols configured for your stock holdings.'
+        }, status=400)
+
+        # Format tickers based on exchange
+    ticker_symbols = []
+    for data in symbol_data.values():
+        ticker_symbol = data['symbol'].upper()
+        if (data['exchange'].upper() == 'ASX'
+                and not ticker_symbol.endswith('.AX')):
+            ticker_symbol = f"{ticker_symbol}.AX"
+        # US stocks (NYSE, NASDAQ) don't need suffix
+        # Other exchanges use ticker as-is
+        ticker_symbols.append(ticker_symbol)
+
+    # Fetch prices from yfinance
+    try:
+        tickers_str = ' '.join(ticker_symbols)
+        data = yf.download(tickers_str, period='1d', interval='1d')
+
+        updated = []
+        for holding in holdings:
+            # Format ticker symbol based on exchange for matching
+            ticker_symbol = holding.symbol.upper()
+            if (holding.exchange.upper() == 'ASX'
+                and not ticker_symbol.endswith('.AX')):
+                ticker_symbol = f"{ticker_symbol}.AX"
+            # US stocks (NYSE, NASDAQ) don't need suffix
+            # Other exchanges use ticker as-is
+
+            if ticker_symbol in data.columns:
+                # Get the most recent price (last row)
+                price_series = data[ticker_symbol]['Close'].dropna()
+                if not price_series.empty:
+                    current_price = price_series.iloc[-1]
+                    holding.current_price = Decimal(str(current_price))
+                    holding.save()
+                    updated.append({
+                        'symbol': holding.symbol,
+                        'exchange': holding.exchange,
+                        'price': str(holding.current_price)
+                    })
+
+        return Response({
+            'message': f'Updated {len(updated)} stock holdings',
+            'updated': updated
+        })
+    except Exception as e:
+        return Response({
+            'error': f'Failed to fetch prices from yfinance: {str(e)}'
         }, status=503)

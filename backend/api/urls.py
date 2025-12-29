@@ -23,6 +23,8 @@ urlpatterns = [
     path('', include(router.urls)),
     path('summary/', views.networth_summary, name='networth-summary'),
     path('crypto/refresh-prices/', views.refresh_crypto_prices, name='refresh-crypto-prices'),
+    path('etf/refresh-prices/', views.refresh_etf_prices, name='refresh-etf-prices'),
+    path('stock/refresh-prices/', views.refresh_stock_prices, name='refresh-stock-prices'),
     path('crypto/get-price/', views.get_crypto_price, name='get-crypto-price'),
     path('etf/get-price/', views.get_etf_price, name='get-etf-price'),
     path('stock/get-price/', views.get_stock_price, name='get-stock-price'),

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Pencil, Trash2, TrendingUp, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import Card, { CardBody } from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -12,7 +12,8 @@ import {
   getETFTransactions,
   createETFTransaction,
   deleteETFTransaction,
-  getETFPrice
+  getETFPrice,
+  refreshETFPrices
 } from '../api';
 import { formatCurrency, formatNumber, formatDate, getGainLossColor } from '../utils/format';
 
@@ -24,9 +25,18 @@ const TRANSACTION_TYPES = [
   { value: 'drp', label: 'Dividend Reinvestment' },
 ];
 
+const EXCHANGES = [
+  { value: 'ASX', label: 'ASX (Australian)' },
+  { value: 'NYSE', label: 'NYSE (US)' },
+  { value: 'NASDAQ', label: 'NASDAQ (US)' },
+  { value: 'LSE', label: 'LSE (UK)' },
+  { value: 'OTHER', label: 'Other' },
+];
+
 const initialHoldingForm = {
   symbol: '',
   name: '',
+  exchange: 'ASX',
   units: '',
   average_price: '',
   current_price: '',
@@ -56,6 +66,7 @@ export default function ETFHoldings() {
   const [expandedHolding, setExpandedHolding] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [fetchingPrice, setFetchingPrice] = useState(false);
+  const [refreshingPrices, setRefreshingPrices] = useState(false);
 
   useEffect(() => {
     fetchHoldings();
@@ -66,7 +77,7 @@ export default function ETFHoldings() {
       if (holdingForm.symbol && holdingForm.symbol.trim()) {
         setFetchingPrice(true);
         try {
-          const response = await getETFPrice(holdingForm.symbol.trim());
+          const response = await getETFPrice(holdingForm.symbol.trim(), holdingForm.exchange);
           if (response.data.price) {
             setHoldingForm(prev => ({ ...prev, current_price: response.data.price.toString() }));
           }
@@ -80,7 +91,7 @@ export default function ETFHoldings() {
 
     const timeoutId = setTimeout(fetchCurrentPrice, 500);
     return () => clearTimeout(timeoutId);
-  }, [holdingForm.symbol]);
+  }, [holdingForm.symbol, holdingForm.exchange]);
 
   const fetchHoldings = async () => {
     try {
@@ -113,12 +124,25 @@ export default function ETFHoldings() {
     }
   };
 
+  const handleRefreshPrices = async () => {
+    setRefreshingPrices(true);
+    try {
+      await refreshETFPrices();
+      await fetchHoldings(); // Refresh the list to show updated prices
+    } catch (err) {
+      console.error('Failed to refresh ETF prices:', err);
+    } finally {
+      setRefreshingPrices(false);
+    }
+  };
+
   const handleOpenHoldingModal = (holding = null) => {
     if (holding) {
       setEditingHolding(holding);
       setHoldingForm({
         symbol: holding.symbol,
         name: holding.name,
+        exchange: holding.exchange || 'ASX',
         units: holding.units,
         average_price: holding.average_price,
         current_price: holding.current_price,
@@ -260,10 +284,20 @@ export default function ETFHoldings() {
           <h1 className="text-3xl font-bold text-gray-900">ETF Holdings</h1>
           <p className="text-gray-500 mt-1">Track your ETF investments and dividends</p>
         </div>
-        <Button onClick={() => handleOpenHoldingModal()}>
-          <Plus size={20} />
-          Add ETF
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            variant="secondary" 
+            onClick={handleRefreshPrices}
+            disabled={refreshingPrices}
+          >
+            <RefreshCw size={20} className={refreshingPrices ? 'animate-spin' : ''} />
+            {refreshingPrices ? 'Refreshing...' : 'Refresh Prices'}
+          </Button>
+          <Button onClick={() => handleOpenHoldingModal()}>
+            <Plus size={20} />
+            Add ETF
+          </Button>
+        </div>
       </div>
 
       {/* Summary Card */}
@@ -436,6 +470,15 @@ export default function ETFHoldings() {
               placeholder="e.g., VAS"
               required
             />
+            <Select
+              label="Exchange"
+              name="exchange"
+              value={holdingForm.exchange}
+              onChange={handleHoldingChange}
+              options={EXCHANGES}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <div className="relative">
               <Input
                 label="Current Price"
