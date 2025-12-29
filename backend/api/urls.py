@@ -47,10 +47,24 @@ router.register(
     views.StockTransactionViewSet,
     basename="stock-transaction",
 )
+router.register(
+    r"asset-snapshots",
+    views.AssetSnapshotViewSet,
+    basename="asset-snapshot",
+)
+router.register(
+    r"networth-snapshots",
+    views.NetWorthSnapshotViewSet,
+    basename="networth-snapshot",
+)
 
 urlpatterns = [
-    path("", include(router.urls)),
     path("summary/", views.networth_summary, name="networth-summary"),
+    path(
+        "networth-snapshots/create/",
+        views.create_networth_snapshot,
+        name="create-networth-snapshot",
+    ),
     path(
         "crypto/refresh-prices/",
         views.refresh_crypto_prices,
@@ -79,4 +93,5 @@ urlpatterns = [
     path("auth/profile/", views.update_profile, name="update_profile"),
     path("auth/password/", views.change_password, name="change_password"),
     path("auth/preferences/", views.user_preferences, name="user_preferences"),
+    path("", include(router.urls)),
 ]

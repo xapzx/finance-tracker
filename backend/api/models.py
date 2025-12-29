@@ -448,3 +448,158 @@ class StockTransaction(models.Model):
 
     def __str__(self):
         return f"{self.stock.symbol} - {self.transaction_type} - {self.date}"
+
+
+class AssetSnapshot(models.Model):
+    """Snapshot of individual asset values at a specific point in time."""
+
+    ASSET_TYPE_CHOICES = [
+        ("bank", "Bank Account"),
+        ("super", "Superannuation"),
+        ("etf", "ETF Holding"),
+        ("stock", "Stock Holding"),
+        ("crypto", "Cryptocurrency"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="asset_snapshots",
+    )
+    date = models.DateField()
+    asset_type = models.CharField(max_length=20, choices=ASSET_TYPE_CHOICES)
+    asset_name = models.CharField(
+        max_length=200,
+        help_text="Name of the asset (e.g., 'ANZ Savings', 'VGS')",
+    )
+    asset_identifier = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Symbol or account number for reference",
+    )
+    value = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        help_text="Asset value at snapshot date",
+    )
+    quantity = models.DecimalField(
+        max_digits=20,
+        decimal_places=10,
+        null=True,
+        blank=True,
+        help_text="Quantity/units for investments (optional)",
+    )
+    price_per_unit = models.DecimalField(
+        max_digits=15,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        help_text="Price per unit for investments (optional)",
+    )
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date", "asset_type", "asset_name"]
+        indexes = [
+            models.Index(fields=["user", "date"]),
+            models.Index(fields=["user", "asset_type", "date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date} - {self.asset_name}: ${self.value}"
+
+
+class NetWorthSnapshot(models.Model):
+    """Monthly snapshot date with notes - actual values calculated from AssetSnapshots."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="networth_snapshots",
+    )
+    date = models.DateField()
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date"]
+        unique_together = ["user", "date"]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date}"
+
+    @property
+    def asset_snapshots(self):
+        """Get all asset snapshots for this date."""
+        return AssetSnapshot.objects.filter(user=self.user, date=self.date)
+
+    @property
+    def total_assets(self):
+        """Calculate total assets from individual asset snapshots."""
+        return sum(
+            snapshot.value for snapshot in self.asset_snapshots.all()
+        ) or Decimal("0.00")
+
+    @property
+    def bank_accounts(self):
+        """Calculate total bank account balances."""
+        return sum(
+            snapshot.value
+            for snapshot in self.asset_snapshots.filter(asset_type="bank")
+        ) or Decimal("0.00")
+
+    @property
+    def superannuation(self):
+        """Calculate total superannuation balance."""
+        return sum(
+            snapshot.value
+            for snapshot in self.asset_snapshots.filter(asset_type="super")
+        ) or Decimal("0.00")
+
+    @property
+    def etf_holdings(self):
+        """Calculate total ETF market value."""
+        return sum(
+            snapshot.value
+            for snapshot in self.asset_snapshots.filter(asset_type="etf")
+        ) or Decimal("0.00")
+
+    @property
+    def stock_holdings(self):
+        """Calculate total stock market value."""
+        return sum(
+            snapshot.value
+            for snapshot in self.asset_snapshots.filter(asset_type="stock")
+        ) or Decimal("0.00")
+
+    @property
+    def crypto_holdings(self):
+        """Calculate total cryptocurrency market value."""
+        return sum(
+            snapshot.value
+            for snapshot in self.asset_snapshots.filter(asset_type="crypto")
+        ) or Decimal("0.00")
+
+    @property
+    def change_from_previous(self):
+        """Calculate change from previous snapshot."""
+        previous = NetWorthSnapshot.objects.filter(
+            user=self.user, date__lt=self.date
+        ).first()
+
+        if previous:
+            return self.total_assets - previous.total_assets
+        return Decimal("0.00")
+
+    @property
+    def change_percentage(self):
+        """Calculate percentage change from previous snapshot."""
+        previous = NetWorthSnapshot.objects.filter(
+            user=self.user, date__lt=self.date
+        ).first()
+
+        if previous and previous.total_assets > 0:
+            change = self.total_assets - previous.total_assets
+            return (change / previous.total_assets) * 100
+        return Decimal("0.00")

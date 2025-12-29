@@ -5,11 +5,13 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from .models import (
+    AssetSnapshot,
     BankAccount,
     CryptoHolding,
     CryptoTransaction,
     ETFHolding,
     ETFTransaction,
+    NetWorthSnapshot,
     StockHolding,
     StockTransaction,
     SuperannuationAccount,
@@ -363,3 +365,47 @@ class StockHoldingListSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+
+class AssetSnapshotSerializer(serializers.ModelSerializer):
+    """Serializer for AssetSnapshot model."""
+
+    class Meta:
+        model = AssetSnapshot
+        exclude = ["user"]
+        read_only_fields = ["id", "created_at"]
+
+
+class NetWorthSnapshotSerializer(serializers.ModelSerializer):
+    """Serializer for NetWorthSnapshot model."""
+
+    total_assets = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
+    bank_accounts = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
+    superannuation = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
+    etf_holdings = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
+    stock_holdings = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
+    crypto_holdings = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
+    change_from_previous = serializers.DecimalField(
+        max_digits=15, decimal_places=2, read_only=True
+    )
+    change_percentage = serializers.DecimalField(
+        max_digits=10, decimal_places=2, read_only=True
+    )
+    asset_snapshots = AssetSnapshotSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = NetWorthSnapshot
+        exclude = ["user"]
+        read_only_fields = ["id", "created_at"]

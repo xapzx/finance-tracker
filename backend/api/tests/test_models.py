@@ -1,11 +1,18 @@
 """Unit tests for API models."""
 
+from datetime import date
 from decimal import Decimal
 
 import pytest
 from django.contrib.auth.models import User
+from django.db import IntegrityError
 
-from api.models import SuperannuationSnapshot, UserPreferences
+from api.models import (
+    AssetSnapshot,
+    NetWorthSnapshot,
+    SuperannuationSnapshot,
+    UserPreferences,
+)
 
 
 @pytest.mark.django_db
@@ -182,3 +189,387 @@ class TestStockHolding:
     def test_stock_holding_str(self, stock_holding):
         """StockHolding __str__ should return symbol and units."""
         assert str(stock_holding) == "CBA - 50.000000 units"
+
+
+@pytest.mark.django_db
+class TestAssetSnapshot:
+    """Tests for AssetSnapshot model."""
+
+    def test_asset_snapshot_creation_bank(self, user):
+        """AssetSnapshot should be created for bank account."""
+        snapshot = AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ - Savings",
+            asset_identifier="savings",
+            value=Decimal("10000.00"),
+        )
+        assert snapshot.asset_type == "bank"
+        assert snapshot.asset_name == "ANZ - Savings"
+        assert snapshot.value == Decimal("10000.00")
+        assert snapshot.quantity is None
+        assert snapshot.price_per_unit is None
+
+    def test_asset_snapshot_creation_investment(self, user):
+        """AssetSnapshot should be created for investment with quantity and price."""
+        snapshot = AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="etf",
+            asset_name="Vanguard Australian Shares",
+            asset_identifier="VAS",
+            value=Decimal("9500.00"),
+            quantity=Decimal("100.000000"),
+            price_per_unit=Decimal("95.0000"),
+        )
+        assert snapshot.asset_type == "etf"
+        assert snapshot.quantity == Decimal("100.000000")
+        assert snapshot.price_per_unit == Decimal("95.0000")
+        assert snapshot.value == Decimal("9500.00")
+
+    def test_asset_snapshot_str(self, user):
+        """AssetSnapshot __str__ should return formatted string."""
+        snapshot = AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ - Savings",
+            asset_identifier="savings",
+            value=Decimal("10000.00"),
+        )
+        expected = f"{user.username} - 2024-01-31 - ANZ - Savings: $10000.00"
+        assert str(snapshot) == expected
+
+    def test_asset_snapshot_ordering(self, user):
+        """AssetSnapshots should be ordered by date desc, type, name."""
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("1000.00"),
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 2, 29),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("2000.00"),
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 2, 29),
+            asset_type="etf",
+            asset_name="VAS",
+            value=Decimal("3000.00"),
+        )
+
+        snapshots = list(AssetSnapshot.objects.all())
+        # Should be ordered by date desc first
+        assert snapshots[0].date == date(2024, 2, 29)
+        assert snapshots[1].date == date(2024, 2, 29)
+        assert snapshots[2].date == date(2024, 1, 31)
+        # Within same date, ordered by type then name
+        assert snapshots[0].asset_type == "bank"
+        assert snapshots[1].asset_type == "etf"
+
+
+@pytest.mark.django_db
+class TestNetWorthSnapshot:
+    """Tests for NetWorthSnapshot model."""
+
+    def test_networth_snapshot_creation(self, user):
+        """NetWorthSnapshot should be created with date and notes."""
+        snapshot = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 1, 31), notes="End of January"
+        )
+        assert snapshot.date == date(2024, 1, 31)
+        assert snapshot.notes == "End of January"
+        assert snapshot.user == user
+
+    def test_networth_snapshot_str(self, user):
+        """NetWorthSnapshot __str__ should return formatted string."""
+        snapshot = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 1, 31)
+        )
+        assert str(snapshot) == f"{user.username} - 2024-01-31"
+
+    def test_networth_snapshot_unique_together(self, user):
+        """NetWorthSnapshot should enforce unique user+date constraint."""
+        NetWorthSnapshot.objects.create(user=user, date=date(2024, 1, 31))
+
+        with pytest.raises(IntegrityError):
+            NetWorthSnapshot.objects.create(user=user, date=date(2024, 1, 31))
+
+    def test_total_assets_calculation_empty(self, user):
+        """NetWorthSnapshot should calculate zero for no assets."""
+        snapshot = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 1, 31)
+        )
+        assert snapshot.total_assets == Decimal("0.00")
+
+    def test_total_assets_calculation_with_assets(self, user):
+        """NetWorthSnapshot should calculate total from asset snapshots."""
+        snapshot = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 1, 31)
+        )
+
+        # Create asset snapshots
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("10000.00"),
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="super",
+            asset_name="Super Fund",
+            value=Decimal("50000.00"),
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="etf",
+            asset_name="VAS",
+            value=Decimal("9500.00"),
+        )
+
+        assert snapshot.total_assets == Decimal("69500.00")
+
+    def test_category_totals_calculation(self, user):
+        """NetWorthSnapshot should calculate category totals correctly."""
+        snapshot = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 1, 31)
+        )
+
+        # Create various asset snapshots
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("10000.00"),
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="Westpac",
+            value=Decimal("5000.00"),
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="super",
+            asset_name="Super Fund",
+            value=Decimal("50000.00"),
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="etf",
+            asset_name="VAS",
+            value=Decimal("9500.00"),
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="stock",
+            asset_name="CBA",
+            value=Decimal("6000.00"),
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="crypto",
+            asset_name="Bitcoin",
+            value=Decimal("50000.00"),
+        )
+
+        assert snapshot.bank_accounts == Decimal("15000.00")
+        assert snapshot.superannuation == Decimal("50000.00")
+        assert snapshot.etf_holdings == Decimal("9500.00")
+        assert snapshot.stock_holdings == Decimal("6000.00")
+        assert snapshot.crypto_holdings == Decimal("50000.00")
+        assert snapshot.total_assets == Decimal("130500.00")
+
+    def test_change_from_previous_first_snapshot(self, user):
+        """First snapshot should have zero change."""
+        snapshot = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 1, 31)
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("10000.00"),
+        )
+
+        assert snapshot.change_from_previous == Decimal("0.00")
+
+    def test_change_from_previous_subsequent_snapshot(self, user):
+        """Subsequent snapshot should calculate change correctly."""
+        # First snapshot
+        NetWorthSnapshot.objects.create(user=user, date=date(2024, 1, 31))
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("10000.00"),
+        )
+
+        # Second snapshot
+        snapshot2 = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 2, 29)
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 2, 29),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("12000.00"),
+        )
+
+        assert snapshot2.change_from_previous == Decimal("2000.00")
+
+    def test_change_percentage_first_snapshot(self, user):
+        """First snapshot should have zero percentage change."""
+        snapshot = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 1, 31)
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("10000.00"),
+        )
+
+        assert snapshot.change_percentage == Decimal("0.00")
+
+    def test_change_percentage_subsequent_snapshot(self, user):
+        """Subsequent snapshot should calculate percentage change correctly."""
+        # First snapshot
+        NetWorthSnapshot.objects.create(user=user, date=date(2024, 1, 31))
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("10000.00"),
+        )
+
+        # Second snapshot - 20% increase
+        snapshot2 = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 2, 29)
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 2, 29),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("12000.00"),
+        )
+
+        # (12000 - 10000) / 10000 * 100 = 20%
+        assert snapshot2.change_percentage == Decimal("20.00")
+
+    def test_change_percentage_negative(self, user):
+        """Snapshot should handle negative percentage change."""
+        # First snapshot
+        NetWorthSnapshot.objects.create(user=user, date=date(2024, 1, 31))
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("10000.00"),
+        )
+
+        # Second snapshot - 10% decrease
+        snapshot2 = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 2, 29)
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 2, 29),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("9000.00"),
+        )
+
+        # (9000 - 10000) / 10000 * 100 = -10%
+        assert snapshot2.change_percentage == Decimal("-10.00")
+
+    def test_asset_snapshots_property(self, user):
+        """NetWorthSnapshot should return correct asset snapshots."""
+        snapshot = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 1, 31)
+        )
+
+        # Create asset snapshots for this date
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("10000.00"),
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="super",
+            asset_name="Super",
+            value=Decimal("50000.00"),
+        )
+
+        # Create asset snapshot for different date (should not be included)
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 2, 29),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("12000.00"),
+        )
+
+        asset_snapshots = snapshot.asset_snapshots.all()
+        assert len(asset_snapshots) == 2
+        assert all(a.date == date(2024, 1, 31) for a in asset_snapshots)
+
+    def test_user_isolation(self, user, another_user):
+        """NetWorthSnapshot should isolate data between users."""
+        # Create snapshot for user1
+        snapshot1 = NetWorthSnapshot.objects.create(
+            user=user, date=date(2024, 1, 31)
+        )
+        AssetSnapshot.objects.create(
+            user=user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="ANZ",
+            value=Decimal("10000.00"),
+        )
+
+        # Create snapshot for user2
+        snapshot2 = NetWorthSnapshot.objects.create(
+            user=another_user, date=date(2024, 1, 31)
+        )
+        AssetSnapshot.objects.create(
+            user=another_user,
+            date=date(2024, 1, 31),
+            asset_type="bank",
+            asset_name="Westpac",
+            value=Decimal("20000.00"),
+        )
+
+        # Each snapshot should only see their own assets
+        assert snapshot1.total_assets == Decimal("10000.00")
+        assert snapshot2.total_assets == Decimal("20000.00")
+        assert len(snapshot1.asset_snapshots.all()) == 1
+        assert len(snapshot2.asset_snapshots.all()) == 1

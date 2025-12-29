@@ -18,7 +18,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  error => Promise.reject(error)
+  error => Promise.reject(error),
 );
 
 // Handle token refresh on 401
@@ -46,7 +46,7 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 // Auth

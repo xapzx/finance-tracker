@@ -11,11 +11,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .models import (
+    AssetSnapshot,
     BankAccount,
     CryptoHolding,
     CryptoTransaction,
     ETFHolding,
     ETFTransaction,
+    NetWorthSnapshot,
     StockHolding,
     StockTransaction,
     SuperannuationAccount,
@@ -23,6 +25,7 @@ from .models import (
     UserPreferences,
 )
 from .serializers import (
+    AssetSnapshotSerializer,
     BankAccountSerializer,
     ChangePasswordSerializer,
     CryptoHoldingListSerializer,
@@ -31,6 +34,7 @@ from .serializers import (
     ETFHoldingListSerializer,
     ETFHoldingSerializer,
     ETFTransactionSerializer,
+    NetWorthSnapshotSerializer,
     RegisterSerializer,
     StockHoldingListSerializer,
     StockHoldingSerializer,
@@ -696,3 +700,143 @@ def refresh_stock_prices(request):
             {"error": f"Failed to fetch prices from yfinance: {str(e)}"},
             status=503,
         )
+
+
+class AssetSnapshotViewSet(viewsets.ModelViewSet):
+    """ViewSet for AssetSnapshot model."""
+
+    serializer_class = AssetSnapshotSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return AssetSnapshot.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class NetWorthSnapshotViewSet(viewsets.ModelViewSet):
+    """ViewSet for NetWorthSnapshot model."""
+
+    serializer_class = NetWorthSnapshotSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return NetWorthSnapshot.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_networth_snapshot(request):
+    """Create a snapshot with asset-level detail from current holdings."""
+
+    user = request.user
+    date = request.data.get("date")
+    notes = request.data.get("notes", "")
+
+    if not date:
+        return Response(
+            {"error": "Date is required"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    snapshot, created = NetWorthSnapshot.objects.get_or_create(
+        user=user, date=date, defaults={"notes": notes}
+    )
+
+    if not created and notes:
+        snapshot.notes = notes
+        snapshot.save()
+
+    # Delete existing asset snapshots for this date to avoid duplicates
+    AssetSnapshot.objects.filter(user=user, date=date).delete()
+
+    # Create asset snapshots for all current holdings
+    asset_snapshots = []
+
+    # Bank Accounts
+    for account in BankAccount.objects.filter(user=user):
+        asset_snapshots.append(
+            AssetSnapshot(
+                user=user,
+                date=date,
+                asset_type="bank",
+                asset_name=f"{account.bank_name} - {account.name}",
+                asset_identifier=account.account_type,
+                value=account.balance,
+            )
+        )
+
+    # Superannuation
+    for account in SuperannuationAccount.objects.filter(user=user):
+        asset_snapshots.append(
+            AssetSnapshot(
+                user=user,
+                date=date,
+                asset_type="super",
+                asset_name=account.fund_name,
+                asset_identifier=account.member_number,
+                value=account.balance,
+            )
+        )
+
+    # ETF Holdings
+    for holding in ETFHolding.objects.filter(user=user):
+        asset_snapshots.append(
+            AssetSnapshot(
+                user=user,
+                date=date,
+                asset_type="etf",
+                asset_name=holding.name,
+                asset_identifier=holding.symbol,
+                value=holding.market_value,
+                quantity=holding.units,
+                price_per_unit=holding.current_price,
+            )
+        )
+
+    # Stock Holdings
+    for holding in StockHolding.objects.filter(user=user):
+        asset_snapshots.append(
+            AssetSnapshot(
+                user=user,
+                date=date,
+                asset_type="stock",
+                asset_name=holding.name,
+                asset_identifier=holding.symbol,
+                value=holding.market_value,
+                quantity=holding.units,
+                price_per_unit=holding.current_price,
+            )
+        )
+
+    # Crypto Holdings
+    for holding in CryptoHolding.objects.filter(user=user):
+        asset_snapshots.append(
+            AssetSnapshot(
+                user=user,
+                date=date,
+                asset_type="crypto",
+                asset_name=holding.name,
+                asset_identifier=holding.symbol,
+                value=holding.market_value,
+                quantity=holding.quantity,
+                price_per_unit=holding.current_price,
+            )
+        )
+
+    AssetSnapshot.objects.bulk_create(asset_snapshots)
+
+    serializer = NetWorthSnapshotSerializer(snapshot)
+    return Response(
+        {
+            "message": "Snapshot created successfully"
+            if created
+            else "Snapshot updated successfully",
+            "snapshot": serializer.data,
+            "assets_captured": len(asset_snapshots),
+        },
+        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+    )

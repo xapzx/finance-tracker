@@ -14,6 +14,7 @@ import {
   BarChart3,
   LogOut,
   Settings,
+  LineChart,
 } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Dashboard from './pages/Dashboard';
@@ -22,6 +23,7 @@ import Superannuation from './pages/Superannuation';
 import ETFHoldings from './pages/ETFHoldings';
 import CryptoHoldings from './pages/CryptoHoldings';
 import StockHoldings from './pages/StockHoldings';
+import NetWorthHistory from './pages/NetWorthHistory';
 import SettingsPage from './pages/Settings';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -33,6 +35,7 @@ const navItems = [
   { path: '/etf', icon: TrendingUp, label: 'ETFs' },
   { path: '/crypto', icon: Bitcoin, label: 'Crypto' },
   { path: '/stocks', icon: BarChart3, label: 'Stocks' },
+  { path: '/history', icon: LineChart, label: 'Net Worth History' },
 ];
 
 function ProtectedRoute({ children }) {
@@ -124,6 +127,7 @@ function AppLayout() {
           <Route path='/etf' element={<ETFHoldings />} />
           <Route path='/crypto' element={<CryptoHoldings />} />
           <Route path='/stocks' element={<StockHoldings />} />
+          <Route path='/history' element={<NetWorthHistory />} />
           <Route path='/settings' element={<SettingsPage />} />
         </Routes>
       </main>
