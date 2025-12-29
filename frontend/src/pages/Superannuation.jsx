@@ -1,13 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Umbrella, ChevronDown, ChevronUp, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Umbrella,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+} from 'lucide-react';
 import Card, { CardBody } from '../components/Card';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Input, { Textarea } from '../components/Input';
-import { 
-  getSuperannuationAccounts, 
-  createSuperannuationAccount, 
-  updateSuperannuationAccount, 
+import {
+  getSuperannuationAccounts,
+  createSuperannuationAccount,
+  updateSuperannuationAccount,
   deleteSuperannuationAccount,
   getSuperSnapshots,
   createSuperSnapshot,
@@ -41,7 +51,7 @@ export default function Superannuation() {
   const [editingAccount, setEditingAccount] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
   const [saving, setSaving] = useState(false);
-  
+
   // Snapshot state
   const [expandedAccount, setExpandedAccount] = useState(null);
   const [snapshots, setSnapshots] = useState({});
@@ -91,12 +101,12 @@ export default function Superannuation() {
     setFormData(initialFormData);
   };
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -121,7 +131,7 @@ export default function Superannuation() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async id => {
     if (!confirm('Are you sure you want to delete this account?')) return;
     try {
       await deleteSuperannuationAccount(id);
@@ -132,7 +142,7 @@ export default function Superannuation() {
   };
 
   // Snapshot functions
-  const toggleExpanded = async (accountId) => {
+  const toggleExpanded = async accountId => {
     if (expandedAccount === accountId) {
       setExpandedAccount(null);
     } else {
@@ -143,7 +153,7 @@ export default function Superannuation() {
     }
   };
 
-  const fetchSnapshots = async (accountId) => {
+  const fetchSnapshots = async accountId => {
     try {
       const response = await getSuperSnapshots(accountId);
       setSnapshots(prev => ({ ...prev, [accountId]: response.data }));
@@ -152,7 +162,7 @@ export default function Superannuation() {
     }
   };
 
-  const handleOpenSnapshotModal = (account) => {
+  const handleOpenSnapshotModal = account => {
     setSnapshotAccount(account);
     setSnapshotForm({
       ...initialSnapshotForm,
@@ -161,12 +171,12 @@ export default function Superannuation() {
     setSnapshotModalOpen(true);
   };
 
-  const handleSnapshotChange = (e) => {
+  const handleSnapshotChange = e => {
     const { name, value } = e.target;
     setSnapshotForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSnapshotSubmit = async (e) => {
+  const handleSnapshotSubmit = async e => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -174,8 +184,10 @@ export default function Superannuation() {
         account: snapshotAccount.id,
         date: snapshotForm.date,
         balance: parseFloat(snapshotForm.balance) || 0,
-        employer_contribution: parseFloat(snapshotForm.employer_contribution) || 0,
-        personal_contribution: parseFloat(snapshotForm.personal_contribution) || 0,
+        employer_contribution:
+          parseFloat(snapshotForm.employer_contribution) || 0,
+        personal_contribution:
+          parseFloat(snapshotForm.personal_contribution) || 0,
         notes: snapshotForm.notes,
       });
       setSnapshotModalOpen(false);
@@ -199,24 +211,24 @@ export default function Superannuation() {
   };
 
   const totalBalance = accounts.reduce(
-    (sum, acc) => sum + parseFloat(acc.balance || 0), 
+    (sum, acc) => sum + parseFloat(acc.balance || 0),
     0
   );
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      <div className='p-8 flex items-center justify-center min-h-screen'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-green-600'></div>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className='p-8'>
+      <div className='flex items-center justify-between mb-8'>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Superannuation</h1>
-          <p className="text-gray-500 mt-1">Track your super fund balances</p>
+          <h1 className='text-3xl font-bold text-gray-900'>Superannuation</h1>
+          <p className='text-gray-500 mt-1'>Track your super fund balances</p>
         </div>
         <Button onClick={() => handleOpenModal()}>
           <Plus size={20} />
@@ -225,16 +237,18 @@ export default function Superannuation() {
       </div>
 
       {/* Summary Card */}
-      <Card className="mb-8 bg-gradient-to-r from-green-500 to-green-600 text-white">
+      <Card className='mb-8 bg-gradient-to-r from-green-500 to-green-600 text-white'>
         <CardBody>
-          <div className="flex items-center gap-4">
-            <div className="bg-white/20 p-4 rounded-full">
+          <div className='flex items-center gap-4'>
+            <div className='bg-white/20 p-4 rounded-full'>
               <Umbrella size={32} />
             </div>
             <div>
-              <p className="text-green-100 text-sm">Total Super Balance</p>
-              <p className="text-3xl font-bold">{formatCurrency(totalBalance)}</p>
-              <p className="text-green-100 text-sm mt-1">
+              <p className='text-green-100 text-sm'>Total Super Balance</p>
+              <p className='text-3xl font-bold'>
+                {formatCurrency(totalBalance)}
+              </p>
+              <p className='text-green-100 text-sm mt-1'>
                 {accounts.length} {accounts.length === 1 ? 'fund' : 'funds'}
               </p>
             </div>
@@ -245,74 +259,82 @@ export default function Superannuation() {
       {/* Accounts List */}
       {accounts.length === 0 ? (
         <Card>
-          <CardBody className="text-center py-12">
-            <Umbrella className="mx-auto text-gray-300 mb-4" size={48} />
-            <p className="text-gray-500">No superannuation accounts yet</p>
-            <p className="text-gray-400 text-sm mt-1">
+          <CardBody className='text-center py-12'>
+            <Umbrella className='mx-auto text-gray-300 mb-4' size={48} />
+            <p className='text-gray-500'>No superannuation accounts yet</p>
+            <p className='text-gray-400 text-sm mt-1'>
               Add your super fund to start tracking
             </p>
           </CardBody>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {accounts.map((account) => (
+        <div className='grid gap-4'>
+          {accounts.map(account => (
             <Card key={account.id}>
               <CardBody>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-green-100 p-3 rounded-lg">
-                      <Umbrella className="text-green-600" size={24} />
+                <div className='flex items-start justify-between'>
+                  <div className='flex items-start gap-4'>
+                    <div className='bg-green-100 p-3 rounded-lg'>
+                      <Umbrella className='text-green-600' size={24} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">
+                      <h3 className='font-semibold text-gray-900'>
                         {account.fund_name}
                       </h3>
                       {account.account_name && (
-                        <p className="text-sm text-gray-600">{account.account_name}</p>
+                        <p className='text-sm text-gray-600'>
+                          {account.account_name}
+                        </p>
                       )}
                       {account.member_number && (
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className='text-xs text-gray-400 mt-1'>
                           Member: {account.member_number}
                         </p>
                       )}
                       {account.investment_option && (
-                        <p className="text-xs text-blue-600 mt-1">
+                        <p className='text-xs text-blue-600 mt-1'>
                           {account.investment_option}
                         </p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-gray-900">
+                  <div className='flex items-start gap-4'>
+                    <div className='text-right'>
+                      <p className='text-2xl font-bold text-gray-900'>
                         {formatCurrency(account.balance)}
                       </p>
-                      <div className="text-xs text-gray-500 mt-2 space-y-1">
+                      <div className='text-xs text-gray-500 mt-2 space-y-1'>
                         {parseFloat(account.employer_contribution) > 0 && (
-                          <p>Employer: {formatCurrency(account.employer_contribution)}</p>
+                          <p>
+                            Employer:{' '}
+                            {formatCurrency(account.employer_contribution)}
+                          </p>
                         )}
                         {parseFloat(account.personal_contribution) > 0 && (
-                          <p>Personal: {formatCurrency(account.personal_contribution)}</p>
+                          <p>
+                            Personal:{' '}
+                            {formatCurrency(account.personal_contribution)}
+                          </p>
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className='flex gap-2'>
                       <button
                         onClick={() => handleOpenSnapshotModal(account)}
-                        className="p-2 text-gray-400 hover:text-green-600 transition-colors"
-                        title="Record monthly balance"
+                        className='p-2 text-gray-400 hover:text-green-600 transition-colors'
+                        title='Record monthly balance'
                       >
                         <Calendar size={18} />
                       </button>
                       <button
                         onClick={() => handleOpenModal(account)}
-                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                        className='p-2 text-gray-400 hover:text-blue-600 transition-colors'
                       >
                         <Pencil size={18} />
                       </button>
                       <button
                         onClick={() => handleDelete(account.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                        className='p-2 text-gray-400 hover:text-red-600 transition-colors'
                       >
                         <Trash2 size={18} />
                       </button>
@@ -320,15 +342,15 @@ export default function Superannuation() {
                   </div>
                 </div>
                 {account.notes && (
-                  <p className="text-sm text-gray-500 mt-3 pt-3 border-t">
+                  <p className='text-sm text-gray-500 mt-3 pt-3 border-t'>
                     {account.notes}
                   </p>
                 )}
-                
+
                 {/* Monthly History Toggle */}
                 <button
                   onClick={() => toggleExpanded(account.id)}
-                  className="flex items-center gap-2 mt-4 pt-3 border-t w-full text-sm text-gray-600 hover:text-gray-900"
+                  className='flex items-center gap-2 mt-4 pt-3 border-t w-full text-sm text-gray-600 hover:text-gray-900'
                 >
                   {expandedAccount === account.id ? (
                     <ChevronUp size={16} />
@@ -337,41 +359,62 @@ export default function Superannuation() {
                   )}
                   Monthly History
                 </button>
-                
+
                 {/* Snapshots List */}
                 {expandedAccount === account.id && (
-                  <div className="mt-4 space-y-2">
-                    {!snapshots[account.id] || snapshots[account.id].length === 0 ? (
-                      <p className="text-sm text-gray-400 text-center py-4">
-                        No monthly records yet. Click the calendar icon to add one.
+                  <div className='mt-4 space-y-2'>
+                    {!snapshots[account.id] ||
+                    snapshots[account.id].length === 0 ? (
+                      <p className='text-sm text-gray-400 text-center py-4'>
+                        No monthly records yet. Click the calendar icon to add
+                        one.
                       </p>
                     ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                      <div className='overflow-x-auto'>
+                        <table className='w-full text-sm'>
                           <thead>
-                            <tr className="text-left text-gray-500 border-b">
-                              <th className="pb-2 font-medium">Date</th>
-                              <th className="pb-2 font-medium text-right">Balance</th>
-                              <th className="pb-2 font-medium text-right">Contributions</th>
-                              <th className="pb-2 font-medium text-right">Gain/Loss</th>
-                              <th className="pb-2 w-10"></th>
+                            <tr className='text-left text-gray-500 border-b'>
+                              <th className='pb-2 font-medium'>Date</th>
+                              <th className='pb-2 font-medium text-right'>
+                                Balance
+                              </th>
+                              <th className='pb-2 font-medium text-right'>
+                                Contributions
+                              </th>
+                              <th className='pb-2 font-medium text-right'>
+                                Gain/Loss
+                              </th>
+                              <th className='pb-2 w-10'></th>
                             </tr>
                           </thead>
                           <tbody>
-                            {snapshots[account.id].map((snapshot) => {
-                              const gain = parseFloat(snapshot.investment_gain || 0);
+                            {snapshots[account.id].map(snapshot => {
+                              const gain = parseFloat(
+                                snapshot.investment_gain || 0
+                              );
                               return (
-                                <tr key={snapshot.id} className="border-b border-gray-50">
-                                  <td className="py-2">{formatDate(snapshot.date)}</td>
-                                  <td className="py-2 text-right font-medium">
+                                <tr
+                                  key={snapshot.id}
+                                  className='border-b border-gray-50'
+                                >
+                                  <td className='py-2'>
+                                    {formatDate(snapshot.date)}
+                                  </td>
+                                  <td className='py-2 text-right font-medium'>
                                     {formatCurrency(snapshot.balance)}
                                   </td>
-                                  <td className="py-2 text-right text-gray-500">
-                                    {formatCurrency(snapshot.total_contributions)}
+                                  <td className='py-2 text-right text-gray-500'>
+                                    {formatCurrency(
+                                      snapshot.total_contributions
+                                    )}
                                   </td>
-                                  <td className={`py-2 text-right font-medium flex items-center justify-end gap-1 ${
-                                    gain >= 0 ? 'text-green-600' : 'text-red-600'
-                                  }`}>
+                                  <td
+                                    className={`py-2 text-right font-medium flex items-center justify-end gap-1 ${
+                                      gain >= 0
+                                        ? 'text-green-600'
+                                        : 'text-red-600'
+                                    }`}
+                                  >
                                     {gain >= 0 ? (
                                       <TrendingUp size={14} />
                                     ) : (
@@ -379,10 +422,15 @@ export default function Superannuation() {
                                     )}
                                     {formatCurrency(Math.abs(gain))}
                                   </td>
-                                  <td className="py-2">
+                                  <td className='py-2'>
                                     <button
-                                      onClick={() => handleDeleteSnapshot(snapshot.id, account.id)}
-                                      className="p-1 text-gray-400 hover:text-red-600"
+                                      onClick={() =>
+                                        handleDeleteSnapshot(
+                                          snapshot.id,
+                                          account.id
+                                        )
+                                      }
+                                      className='p-1 text-gray-400 hover:text-red-600'
                                     >
                                       <Trash2 size={14} />
                                     </button>
@@ -408,78 +456,82 @@ export default function Superannuation() {
         onClose={handleCloseModal}
         title={editingAccount ? 'Edit Super Account' : 'Add Super Account'}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className='space-y-4'>
           <Input
-            label="Fund Name"
-            name="fund_name"
+            label='Fund Name'
+            name='fund_name'
             value={formData.fund_name}
             onChange={handleChange}
-            placeholder="e.g., Australian Super"
+            placeholder='e.g., Australian Super'
             required
           />
           <Input
-            label="Account Name"
-            name="account_name"
+            label='Account Name'
+            name='account_name'
             value={formData.account_name}
             onChange={handleChange}
-            placeholder="e.g., Personal Super"
+            placeholder='e.g., Personal Super'
           />
           <Input
-            label="Member Number"
-            name="member_number"
+            label='Member Number'
+            name='member_number'
             value={formData.member_number}
             onChange={handleChange}
-            placeholder="e.g., 123456789"
+            placeholder='e.g., 123456789'
           />
           <Input
-            label="Current Balance (AUD)"
-            name="balance"
-            type="number"
-            step="0.01"
+            label='Current Balance (AUD)'
+            name='balance'
+            type='number'
+            step='0.01'
             value={formData.balance}
             onChange={handleChange}
-            placeholder="0.00"
+            placeholder='0.00'
             required
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className='grid grid-cols-2 gap-4'>
             <Input
-              label="Employer Contribution"
-              name="employer_contribution"
-              type="number"
-              step="0.01"
+              label='Employer Contribution'
+              name='employer_contribution'
+              type='number'
+              step='0.01'
               value={formData.employer_contribution}
               onChange={handleChange}
-              placeholder="0.00"
+              placeholder='0.00'
             />
             <Input
-              label="Personal Contribution"
-              name="personal_contribution"
-              type="number"
-              step="0.01"
+              label='Personal Contribution'
+              name='personal_contribution'
+              type='number'
+              step='0.01'
               value={formData.personal_contribution}
               onChange={handleChange}
-              placeholder="0.00"
+              placeholder='0.00'
             />
           </div>
           <Input
-            label="Investment Option"
-            name="investment_option"
+            label='Investment Option'
+            name='investment_option'
             value={formData.investment_option}
             onChange={handleChange}
-            placeholder="e.g., Balanced Growth"
+            placeholder='e.g., Balanced Growth'
           />
           <Textarea
-            label="Notes"
-            name="notes"
+            label='Notes'
+            name='notes'
             value={formData.notes}
             onChange={handleChange}
-            placeholder="Optional notes..."
+            placeholder='Optional notes...'
           />
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="secondary" onClick={handleCloseModal}>
+          <div className='flex gap-3 pt-4'>
+            <Button
+              type='button'
+              variant='secondary'
+              onClick={handleCloseModal}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type='submit' disabled={saving}>
               {saving ? 'Saving...' : editingAccount ? 'Update' : 'Add Account'}
             </Button>
           </div>
@@ -490,62 +542,67 @@ export default function Superannuation() {
       <Modal
         isOpen={snapshotModalOpen}
         onClose={() => setSnapshotModalOpen(false)}
-        title="Record Monthly Balance"
+        title='Record Monthly Balance'
       >
-        <form onSubmit={handleSnapshotSubmit} className="space-y-4">
-          <p className="text-sm text-gray-500 mb-4">
-            Record your super balance for {snapshotAccount?.fund_name} to track monthly gain/loss.
+        <form onSubmit={handleSnapshotSubmit} className='space-y-4'>
+          <p className='text-sm text-gray-500 mb-4'>
+            Record your super balance for {snapshotAccount?.fund_name} to track
+            monthly gain/loss.
           </p>
           <Input
-            label="Date"
-            name="date"
-            type="date"
+            label='Date'
+            name='date'
+            type='date'
             value={snapshotForm.date}
             onChange={handleSnapshotChange}
             required
           />
           <Input
-            label="Balance (AUD)"
-            name="balance"
-            type="number"
-            step="0.01"
+            label='Balance (AUD)'
+            name='balance'
+            type='number'
+            step='0.01'
             value={snapshotForm.balance}
             onChange={handleSnapshotChange}
-            placeholder="0.00"
+            placeholder='0.00'
             required
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className='grid grid-cols-2 gap-4'>
             <Input
-              label="Employer Contribution"
-              name="employer_contribution"
-              type="number"
-              step="0.01"
+              label='Employer Contribution'
+              name='employer_contribution'
+              type='number'
+              step='0.01'
               value={snapshotForm.employer_contribution}
               onChange={handleSnapshotChange}
-              placeholder="This month"
+              placeholder='This month'
             />
             <Input
-              label="Personal Contribution"
-              name="personal_contribution"
-              type="number"
-              step="0.01"
+              label='Personal Contribution'
+              name='personal_contribution'
+              type='number'
+              step='0.01'
               value={snapshotForm.personal_contribution}
               onChange={handleSnapshotChange}
-              placeholder="This month"
+              placeholder='This month'
             />
           </div>
           <Textarea
-            label="Notes"
-            name="notes"
+            label='Notes'
+            name='notes'
             value={snapshotForm.notes}
             onChange={handleSnapshotChange}
-            placeholder="Optional notes..."
+            placeholder='Optional notes...'
           />
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="secondary" onClick={() => setSnapshotModalOpen(false)}>
+          <div className='flex gap-3 pt-4'>
+            <Button
+              type='button'
+              variant='secondary'
+              onClick={() => setSnapshotModalOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type='submit' disabled={saving}>
               {saving ? 'Saving...' : 'Save Record'}
             </Button>
           </div>

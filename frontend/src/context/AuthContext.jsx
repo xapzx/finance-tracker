@@ -41,14 +41,16 @@ export function AuthProvider({ children }) {
   const isAuthenticated = !!user;
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      isAuthenticated, 
-      loginUser, 
-      logoutUser,
-      checkAuth 
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        isAuthenticated,
+        loginUser,
+        logoutUser,
+        checkAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

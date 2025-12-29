@@ -8,7 +8,7 @@ export default function Input({
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className='block text-sm font-medium text-gray-700 mb-1'>
           {label}
         </label>
       )}
@@ -21,9 +21,7 @@ export default function Input({
         `}
         {...props}
       />
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
     </div>
   );
 }
@@ -32,7 +30,7 @@ export function Select({ label, options, error, className = '', ...props }) {
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className='block text-sm font-medium text-gray-700 mb-1'>
           {label}
         </label>
       )}
@@ -44,15 +42,13 @@ export function Select({ label, options, error, className = '', ...props }) {
         `}
         {...props}
       >
-        {options.map((option) => (
+        {options.map(option => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
       </select>
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
     </div>
   );
 }
@@ -61,7 +57,7 @@ export function Textarea({ label, error, className = '', ...props }) {
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className='block text-sm font-medium text-gray-700 mb-1'>
           {label}
         </label>
       )}
@@ -74,9 +70,7 @@ export function Textarea({ label, error, className = '', ...props }) {
         rows={3}
         {...props}
       />
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
     </div>
   );
 }

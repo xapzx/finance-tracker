@@ -1,6 +1,8 @@
 export default function Card({ children, className = '' }) {
   return (
-    <div className={`bg-white rounded-xl shadow-sm border border-gray-100 ${className}`}>
+    <div
+      className={`bg-white rounded-xl shadow-sm border border-gray-100 ${className}`}
+    >
       {children}
     </div>
   );
@@ -15,9 +17,5 @@ export function CardHeader({ children, className = '' }) {
 }
 
 export function CardBody({ children, className = '' }) {
-  return (
-    <div className={`p-6 ${className}`}>
-      {children}
-    </div>
-  );
+  return <div className={`p-6 ${className}`}>{children}</div>;
 }
