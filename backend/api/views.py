@@ -54,7 +54,7 @@ def current_user(request):
     user = request.user
     # Ensure preferences exist
     preferences, _ = UserPreferences.objects.get_or_create(user=user)
-    
+
     user_data = UserSerializer(user).data
     user_data['preferences'] = UserPreferencesSerializer(preferences).data
     return Response(user_data)
@@ -93,11 +93,11 @@ def change_password(request):
 def user_preferences(request):
     """Get or update user preferences."""
     preferences, _ = UserPreferences.objects.get_or_create(user=request.user)
-    
+
     if request.method == 'GET':
         serializer = UserPreferencesSerializer(preferences)
         return Response(serializer.data)
-    
+
     serializer = UserPreferencesSerializer(
         preferences, data=request.data, partial=True
     )
@@ -386,3 +386,39 @@ def refresh_crypto_prices(request):
         'updated': updated,
         'prices': prices
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_crypto_price(request):
+    """Fetch current price for a single crypto from CoinGecko."""
+    coingecko_id = request.query_params.get('coingecko_id')
+
+    if not coingecko_id:
+        return Response({
+            'error': 'coingecko_id parameter is required'
+        }, status=400)
+
+    # Fetch price from CoinGecko
+    try:
+        url = 'https://api.coingecko.com/api/v3/simple/price'
+        response = requests.get(url, params={
+            'ids': coingecko_id,
+            'vs_currencies': 'aud'
+        }, timeout=10)
+        response.raise_for_status()
+        prices = response.json()
+
+        if coingecko_id in prices and 'aud' in prices[coingecko_id]:
+            return Response({
+                'coingecko_id': coingecko_id,
+                'price': prices[coingecko_id]['aud']
+            })
+        else:
+            return Response({
+                'error': f'Price not found for {coingecko_id}'
+            }, status=404)
+    except requests.RequestException as e:
+        return Response({
+            'error': f'Failed to fetch price from CoinGecko: {str(e)}'
+        }, status=503)

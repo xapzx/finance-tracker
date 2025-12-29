@@ -13,6 +13,7 @@ import {
   createCryptoTransaction,
   deleteCryptoTransaction,
   refreshCryptoPrices,
+  getCryptoPrice,
 } from '../api';
 import { formatCurrency, formatNumber, formatDate, getGainLossColor } from '../utils/format';
 
@@ -61,10 +62,32 @@ export default function CryptoHoldings() {
   const [expandedHolding, setExpandedHolding] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchingPrice, setFetchingPrice] = useState(false);
 
   useEffect(() => {
     fetchHoldings();
   }, []);
+
+  useEffect(() => {
+    const fetchCurrentPrice = async () => {
+      if (holdingForm.coingecko_id && holdingForm.coingecko_id.trim()) {
+        setFetchingPrice(true);
+        try {
+          const response = await getCryptoPrice(holdingForm.coingecko_id.trim());
+          if (response.data.price) {
+            setHoldingForm(prev => ({ ...prev, current_price: response.data.price.toString() }));
+          }
+        } catch (err) {
+          console.error('Failed to fetch crypto price:', err);
+        } finally {
+          setFetchingPrice(false);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(fetchCurrentPrice, 500);
+    return () => clearTimeout(timeoutId);
+  }, [holdingForm.coingecko_id]);
 
   const fetchHoldings = async () => {
     try {
@@ -453,16 +476,24 @@ export default function CryptoHoldings() {
               placeholder="e.g., BTC"
               required
             />
-            <Input
-              label="Current Price (AUD)"
-              name="current_price"
-              type="number"
-              step="0.0001"
-              value={holdingForm.current_price}
-              onChange={handleHoldingChange}
-              placeholder="0.00"
-              required
-            />
+            <div className="relative">
+              <Input
+                label="Current Price (AUD)"
+                name="current_price"
+                type="number"
+                step="0.0001"
+                value={holdingForm.current_price}
+                onChange={handleHoldingChange}
+                placeholder="0.00"
+                required
+              />
+              {fetchingPrice && (
+                <div className="absolute right-3 top-9 flex items-center gap-2 text-sm text-blue-600">
+                  <RefreshCw size={16} className="animate-spin" />
+                  <span>Fetching price...</span>
+                </div>
+              )}
+            </div>
           </div>
           <Input
             label="Name"

@@ -104,6 +104,7 @@ export const createCryptoHolding = (data) => api.post('/crypto-holdings/', data)
 export const updateCryptoHolding = (id, data) => api.put(`/crypto-holdings/${id}/`, data);
 export const deleteCryptoHolding = (id) => api.delete(`/crypto-holdings/${id}/`);
 export const refreshCryptoPrices = () => api.post('/crypto/refresh-prices/');
+export const getCryptoPrice = (coingeckoId) => api.get('/crypto/get-price/', { params: { coingecko_id: coingeckoId } });
 
 // Crypto Transactions
 export const getCryptoTransactions = (cryptoId) => api.get(`/crypto-transactions/${cryptoId ? `?crypto=${cryptoId}` : ''}`);
