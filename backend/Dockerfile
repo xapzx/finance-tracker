@@ -23,8 +23,8 @@ RUN pip install uv
 # Copy pyproject.toml and uv.lock first to leverage Docker cache
 COPY pyproject.toml uv.lock ./
 
-# Install Python dependencies
-RUN uv sync --frozen
+# Install Python dependencies (including dev dependencies for Ruff)
+RUN uv sync --frozen --group dev
 
 # Copy project
 COPY . .

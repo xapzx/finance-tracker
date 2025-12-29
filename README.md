@@ -16,6 +16,7 @@ A full-stack web application to track your net worth across multiple asset types
 ### Backend
 - Django 5.2.9
 - Django REST Framework 3.15.0
+- Ruff (Python linting and formatting)
 - SQLite (default, easily switchable to PostgreSQL)
 
 ### Frontend
@@ -74,6 +75,33 @@ docker-compose down
 docker-compose logs -f
 ```
 
+8. Code Quality with Ruff (Docker):
+
+The project uses Ruff for Python linting and formatting. You can run Ruff commands inside the Docker container:
+
+```bash
+# Check for linting issues
+docker-compose exec backend uv run ruff check .
+
+# Fix issues automatically
+docker-compose exec backend uv run ruff check --fix .
+
+# Format code
+docker-compose exec backend uv run ruff format .
+
+# Run pre-commit hooks manually
+docker-compose exec backend uv run pre-commit run --all-files
+```
+
+**Pre-commit Hooks**: The Docker image includes pre-commit hooks. To enable them for local development:
+
+```bash
+# Install pre-commit hooks (one-time setup)
+docker-compose exec backend uv run pre-commit install
+
+# Hooks will now run automatically before each commit
+```
+
 ---
 
 ### Manual Setup (Without Docker)
@@ -117,6 +145,27 @@ uv run python manage.py runserver
 ```
 
 The API will be available at `http://localhost:8000/api/`
+
+### Code Quality with Ruff (Manual)
+
+The project uses Ruff for Python linting and formatting:
+
+```bash
+# Check for linting issues
+uv run ruff check .
+
+# Fix issues automatically
+uv run ruff check --fix .
+
+# Format code
+uv run ruff format .
+
+# Install pre-commit hooks (one-time setup)
+uv run pre-commit install
+
+# Run pre-commit hooks manually
+uv run pre-commit run --all-files
+```
 
 ### Frontend Setup
 
