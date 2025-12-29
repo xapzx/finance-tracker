@@ -90,6 +90,7 @@ export const getETFHolding = (id) => api.get(`/etf-holdings/${id}/`);
 export const createETFHolding = (data) => api.post('/etf-holdings/', data);
 export const updateETFHolding = (id, data) => api.put(`/etf-holdings/${id}/`, data);
 export const deleteETFHolding = (id) => api.delete(`/etf-holdings/${id}/`);
+export const getETFPrice = (ticker) => api.get('/etf/get-price/', { params: { ticker } });
 
 // ETF Transactions
 export const getETFTransactions = (etfId) => api.get(`/etf-transactions/${etfId ? `?etf=${etfId}` : ''}`);
@@ -118,6 +119,7 @@ export const getStockHolding = (id) => api.get(`/stock-holdings/${id}/`);
 export const createStockHolding = (data) => api.post('/stock-holdings/', data);
 export const updateStockHolding = (id, data) => api.put(`/stock-holdings/${id}/`, data);
 export const deleteStockHolding = (id) => api.delete(`/stock-holdings/${id}/`);
+export const getStockPrice = (ticker) => api.get('/stock/get-price/', { params: { ticker } });
 
 // Stock Transactions
 export const getStockTransactions = (stockId) => api.get(`/stock-transactions/${stockId ? `?stock=${stockId}` : ''}`);

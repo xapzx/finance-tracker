@@ -11,7 +11,8 @@ import {
   deleteStockHolding,
   getStockTransactions,
   createStockTransaction,
-  deleteStockTransaction
+  deleteStockTransaction,
+  getStockPrice
 } from '../api';
 import { formatCurrency, formatNumber, formatDate, getGainLossColor } from '../utils/format';
 
@@ -62,10 +63,32 @@ export default function StockHoldings() {
   const [saving, setSaving] = useState(false);
   const [expandedHolding, setExpandedHolding] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [fetchingPrice, setFetchingPrice] = useState(false);
 
   useEffect(() => {
     fetchHoldings();
   }, []);
+
+  useEffect(() => {
+    const fetchCurrentPrice = async () => {
+      if (holdingForm.symbol && holdingForm.symbol.trim()) {
+        setFetchingPrice(true);
+        try {
+          const response = await getStockPrice(holdingForm.symbol.trim());
+          if (response.data.price) {
+            setHoldingForm(prev => ({ ...prev, current_price: response.data.price.toString() }));
+          }
+        } catch (err) {
+          console.error('Failed to fetch stock price:', err);
+        } finally {
+          setFetchingPrice(false);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(fetchCurrentPrice, 500);
+    return () => clearTimeout(timeoutId);
+  }, [holdingForm.symbol]);
 
   const fetchHoldings = async () => {
     try {
@@ -465,16 +488,24 @@ export default function StockHoldings() {
               required
             />
           </div>
-          <Input
-            label="Current Price"
-            name="current_price"
-            type="number"
-            step="0.0001"
-            value={holdingForm.current_price}
-            onChange={handleHoldingChange}
-            placeholder="0.00"
-            required
-          />
+          <div className="relative">
+            <Input
+              label="Current Price"
+              name="current_price"
+              type="number"
+              step="0.0001"
+              value={holdingForm.current_price}
+              onChange={handleHoldingChange}
+              placeholder="0.00"
+              required
+            />
+            {fetchingPrice && (
+              <div className="absolute right-3 top-9 flex items-center gap-2 text-sm text-blue-600">
+                <BarChart3 size={16} className="animate-pulse" />
+                <span>Fetching price...</span>
+              </div>
+            )}
+          </div>
           <Textarea
             label="Notes"
             name="notes"

@@ -1,6 +1,7 @@
 """Views for the Networth Tracker API."""
 
 import requests
+import yfinance as yf
 from decimal import Decimal
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import api_view, permission_classes
@@ -421,4 +422,88 @@ def get_crypto_price(request):
     except requests.RequestException as e:
         return Response({
             'error': f'Failed to fetch price from CoinGecko: {str(e)}'
+        }, status=503)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_etf_price(request):
+    """Fetch current price for an ETF using yfinance."""
+    ticker = request.query_params.get('ticker')
+
+    if not ticker:
+        return Response({
+            'error': 'ticker parameter is required'
+        }, status=400)
+
+    try:
+        # Add .AX suffix for Australian ETFs if not present
+        ticker_symbol = ticker.upper()
+        if not ticker_symbol.endswith('.AX'):
+            ticker_symbol = f"{ticker_symbol}.AX"
+
+        # Fetch data from yfinance
+        etf = yf.Ticker(ticker_symbol)
+        info = etf.info
+
+        # Try to get current price from different fields
+        price = (info.get('currentPrice') or
+                 info.get('regularMarketPrice') or
+                 info.get('previousClose'))
+
+        if price:
+            return Response({
+                'ticker': ticker,
+                'price': float(price),
+                'currency': info.get('currency', 'AUD')
+            })
+        else:
+            return Response({
+                'error': f'Price not found for ticker {ticker_symbol}'
+            }, status=404)
+    except Exception as e:
+        return Response({
+            'error': f'Failed to fetch price from yfinance: {str(e)}'
+        }, status=503)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_stock_price(request):
+    """Fetch current price for a stock using yfinance."""
+    ticker = request.query_params.get('ticker')
+
+    if not ticker:
+        return Response({
+            'error': 'ticker parameter is required'
+        }, status=400)
+
+    try:
+        # Add .AX suffix for Australian stocks if not present
+        ticker_symbol = ticker.upper()
+        if not ticker_symbol.endswith('.AX'):
+            ticker_symbol = f"{ticker_symbol}.AX"
+
+        # Fetch data from yfinance
+        stock = yf.Ticker(ticker_symbol)
+        info = stock.info
+
+        # Try to get current price from different fields
+        price = (info.get('currentPrice') or
+                 info.get('regularMarketPrice') or
+                 info.get('previousClose'))
+
+        if price:
+            return Response({
+                'ticker': ticker,
+                'price': float(price),
+                'currency': info.get('currency', 'AUD')
+            })
+        else:
+            return Response({
+                'error': f'Price not found for ticker {ticker_symbol}'
+            }, status=404)
+    except Exception as e:
+        return Response({
+            'error': f'Failed to fetch price from yfinance: {str(e)}'
         }, status=503)
