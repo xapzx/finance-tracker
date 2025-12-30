@@ -1,10 +1,12 @@
-# Use Python 3.14 slim image
-FROM python:3.14-slim
+# Use Astral's official UV image with Python 3.14
+FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
+ENV UV_LINK_MODE=copy
+ENV UV_COMPILE_BYTECODE=1
 
 # Set work directory
 WORKDIR /app
@@ -14,17 +16,14 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
         libpq-dev \
-        curl \
     && rm -rf /var/lib/apt/lists/*
-
-# Install uv
-RUN pip install uv
 
 # Copy pyproject.toml and uv.lock first to leverage Docker cache
 COPY pyproject.toml uv.lock ./
 
 # Install Python dependencies (including dev dependencies for Ruff)
-RUN uv sync --frozen --group dev
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --group dev
 
 # Copy project
 COPY . .
