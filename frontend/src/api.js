@@ -154,4 +154,11 @@ export const updateStockTransaction = (id, data) =>
 export const deleteStockTransaction = id =>
   api.delete(`/stock-transactions/${id}/`);
 
+// Net Worth Snapshots
+export const getNetWorthSnapshots = () => api.get('/networth-snapshots/');
+export const createNetWorthSnapshot = data =>
+  api.post('/networth-snapshots/create/', data);
+export const deleteNetWorthSnapshot = id =>
+  api.delete(`/networth-snapshots/${id}/`);
+
 export default api;

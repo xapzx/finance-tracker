@@ -17,29 +17,39 @@ import {
   ResponsiveContainer,
   Tooltip,
   Legend,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from 'recharts';
 import Card, { CardBody, CardHeader } from '../components/Card';
-import { getSummary } from '../api';
+import { getSummary, getNetWorthSnapshots } from '../api';
 import { formatCurrency, getGainLossColor } from '../utils/format';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
 
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
+  const [snapshots, setSnapshots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchSummary();
+    fetchData();
   }, []);
 
-  const fetchSummary = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await getSummary();
-      setSummary(response.data);
+      const [summaryResponse, snapshotsResponse] = await Promise.all([
+        getSummary(),
+        getNetWorthSnapshots(),
+      ]);
+      setSummary(summaryResponse.data);
+      setSnapshots(snapshotsResponse.data);
     } catch (err) {
-      setError('Failed to load summary data');
+      setError('Failed to load dashboard data');
       console.error(err);
     } finally {
       setLoading(false);
@@ -80,6 +90,30 @@ export default function Dashboard() {
 
   const totalNetworth = parseFloat(summary?.total_networth || 0);
   const investmentSummary = summary?.investment_summary || {};
+
+  // Calculate Total Savings (excluding superannuation) over time with breakdown
+  const savingsChartData = snapshots
+    .map(snapshot => {
+      return {
+        date: new Date(snapshot.date).toLocaleDateString('en-AU', {
+          month: 'short',
+          year: 'numeric',
+        }),
+        'Bank Accounts': parseFloat(snapshot.bank_accounts || 0),
+        'ETF Holdings': parseFloat(snapshot.etf_holdings || 0),
+        'Stock Holdings': parseFloat(snapshot.stock_holdings || 0),
+        'Crypto Holdings': parseFloat(snapshot.crypto_holdings || 0),
+        timestamp: new Date(snapshot.date).getTime(),
+      };
+    })
+    .sort((a, b) => a.timestamp - b.timestamp);
+
+  // Calculate current total savings (excluding super)
+  const currentTotalSavings =
+    parseFloat(breakdown.bank_accounts?.total || 0) +
+    parseFloat(breakdown.etf?.market_value || 0) +
+    parseFloat(breakdown.stocks?.market_value || 0) +
+    parseFloat(breakdown.crypto?.market_value || 0);
 
   const assetCards = [
     {
@@ -216,6 +250,100 @@ export default function Dashboard() {
           </CardBody>
         </Card>
       </div>
+
+      {/* Total Savings Chart */}
+      {savingsChartData.length > 0 && (
+        <Card className='mb-8'>
+          <CardBody>
+            <div className='flex items-center justify-between mb-4'>
+              <div>
+                <h2 className='text-xl font-semibold text-gray-900'>
+                  Total Savings Tracker
+                </h2>
+                <p className='text-sm text-gray-500 mt-1'>
+                  All assets excluding superannuation
+                </p>
+              </div>
+              <div className='text-right'>
+                <p className='text-sm text-gray-500'>Current Total Savings</p>
+                <p className='text-2xl font-bold text-blue-600'>
+                  {formatCurrency(currentTotalSavings)}
+                </p>
+              </div>
+            </div>
+            <ResponsiveContainer width='100%' height={350}>
+              <AreaChart data={savingsChartData}>
+                <defs>
+                  <linearGradient id='colorBank' x1='0' y1='0' x2='0' y2='1'>
+                    <stop offset='5%' stopColor='#3b82f6' stopOpacity={0.8} />
+                    <stop offset='95%' stopColor='#3b82f6' stopOpacity={0.3} />
+                  </linearGradient>
+                  <linearGradient id='colorETF' x1='0' y1='0' x2='0' y2='1'>
+                    <stop offset='5%' stopColor='#f59e0b' stopOpacity={0.8} />
+                    <stop offset='95%' stopColor='#f59e0b' stopOpacity={0.3} />
+                  </linearGradient>
+                  <linearGradient id='colorStock' x1='0' y1='0' x2='0' y2='1'>
+                    <stop offset='5%' stopColor='#ec4899' stopOpacity={0.8} />
+                    <stop offset='95%' stopColor='#ec4899' stopOpacity={0.3} />
+                  </linearGradient>
+                  <linearGradient id='colorCrypto' x1='0' y1='0' x2='0' y2='1'>
+                    <stop offset='5%' stopColor='#8b5cf6' stopOpacity={0.8} />
+                    <stop offset='95%' stopColor='#8b5cf6' stopOpacity={0.3} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray='3 3' stroke='#e5e7eb' />
+                <XAxis
+                  dataKey='date'
+                  tick={{ fontSize: 12 }}
+                  stroke='#6b7280'
+                />
+                <YAxis
+                  tick={{ fontSize: 12 }}
+                  stroke='#6b7280'
+                  tickFormatter={value => `$${(value / 1000).toFixed(0)}k`}
+                />
+                <Tooltip
+                  formatter={value => formatCurrency(value)}
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                  }}
+                />
+                <Legend />
+                <Area
+                  type='monotone'
+                  dataKey='Bank Accounts'
+                  stackId='1'
+                  stroke='#3b82f6'
+                  fill='url(#colorBank)'
+                />
+                <Area
+                  type='monotone'
+                  dataKey='ETF Holdings'
+                  stackId='1'
+                  stroke='#f59e0b'
+                  fill='url(#colorETF)'
+                />
+                <Area
+                  type='monotone'
+                  dataKey='Stock Holdings'
+                  stackId='1'
+                  stroke='#ec4899'
+                  fill='url(#colorStock)'
+                />
+                <Area
+                  type='monotone'
+                  dataKey='Crypto Holdings'
+                  stackId='1'
+                  stroke='#8b5cf6'
+                  fill='url(#colorCrypto)'
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardBody>
+        </Card>
+      )}
 
       {/* Asset Breakdown */}
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
