@@ -305,9 +305,9 @@ class CryptoHolding(models.Model):
         help_text="CoinGecko ID for price fetching (e.g., 'bitcoin', 'ethereum')",
     )
     quantity = models.DecimalField(max_digits=20, decimal_places=10)
-    average_price = models.DecimalField(max_digits=15, decimal_places=4)
+    average_price = models.DecimalField(max_digits=20, decimal_places=10)
     current_price = models.DecimalField(
-        max_digits=15, decimal_places=4, default=Decimal("0.00")
+        max_digits=20, decimal_places=10, default=Decimal("0.00")
     )
     wallet_address = models.CharField(max_length=200, blank=True)
     exchange = models.CharField(max_length=100, blank=True)
@@ -355,10 +355,10 @@ class CryptoTransaction(models.Model):
     date = models.DateField()
     quantity = models.DecimalField(max_digits=20, decimal_places=10)
     price_per_unit = models.DecimalField(
-        max_digits=15, decimal_places=4, null=True, blank=True
+        max_digits=20, decimal_places=10, null=True, blank=True
     )
     total_amount = models.DecimalField(
-        max_digits=15, decimal_places=2, null=True, blank=True
+        max_digits=20, decimal_places=10, null=True, blank=True
     )
     fee = models.DecimalField(
         max_digits=10, decimal_places=4, default=Decimal("0.00")
@@ -478,8 +478,8 @@ class AssetSnapshot(models.Model):
         help_text="Symbol or account number for reference",
     )
     value = models.DecimalField(
-        max_digits=15,
-        decimal_places=2,
+        max_digits=20,
+        decimal_places=10,
         help_text="Asset value at snapshot date",
     )
     quantity = models.DecimalField(
@@ -490,8 +490,8 @@ class AssetSnapshot(models.Model):
         help_text="Quantity/units for investments (optional)",
     )
     price_per_unit = models.DecimalField(
-        max_digits=15,
-        decimal_places=4,
+        max_digits=20,
+        decimal_places=10,
         null=True,
         blank=True,
         help_text="Price per unit for investments (optional)",
